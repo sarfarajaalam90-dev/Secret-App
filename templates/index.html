@@ -864,5 +864,110 @@ function comingSoon(type){
 // ── Util ───────────────────────────────────────────────────
 function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 </script>
+
+<!-- ── Firebase SDK (module) ── -->
+<script type="module">
+import { initializeApp }     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc, onSnapshot,
+         query, orderBy, serverTimestamp }
+                              from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:            "AIzaSyDYmJG3cJRpBmIvZB6CIScjlKY0uu1ZFCM",
+  authDomain:        "nexo-app-b9ec4.firebaseapp.com",
+  projectId:         "nexo-app-b9ec4",
+  storageBucket:     "nexo-app-b9ec4.firebasestorage.app",
+  messagingSenderId: "234431823882",
+  appId:             "1:234431823882:web:2df3b5f8314e20a4991ff3"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const db    = getFirestore(fbApp);
+
+function roomId(cid){ return `room_${cid}`; }
+
+// ── Real-time listener ───────────────────────────────────────
+let unsub = null;
+
+function startListener(contactId){
+  if(unsub){ unsub(); unsub=null; }
+  const q = query(collection(db,'chats',roomId(contactId),'messages'), orderBy('createdAt'));
+  unsub = onSnapshot(q, snap => {
+    snap.docChanges().forEach(ch => {
+      if(ch.type!=='added') return;
+      const d   = ch.doc.data();
+      const msg = { id: ch.doc.id, text: d.text, sender: d.sender, time: d.time||'' };
+      const area = document.getElementById('chat-bg');
+      if(!area) return;
+      if(area.querySelector(`[data-fbid="${msg.id}"]`)) return; // already shown
+      if(window.state?.activeContact?.id !== contactId) return;
+      const contact = window.state.activeContact;
+      const div = document.createElement('div');
+      div.className = `bubble-row ${msg.sender}`;
+      div.setAttribute('data-fbid', msg.id);
+      div.innerHTML = `
+        ${msg.sender==='them'
+          ? `<div style="width:28px;height:28px;border-radius:50%;flex-shrink:0;background:${avatarColor(contact.name)};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff">${contact.avatar}</div>`
+          : ''}
+        <div class="bubble ${msg.sender}">
+          ${escHtml(msg.text)}
+          <div class="bubble-time">
+            ${msg.time}
+            ${msg.sender==='me'?'<span class="tick"><svg width="14" height="10" viewBox="0 0 14 10" fill="none"><path d="M1 5l3 3 5-7" stroke="#a5f3fc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 5l3 3 5-7" stroke="#a5f3fc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>':''} 
+          </div>
+        </div>`;
+      area.appendChild(div);
+      scrollToBottom();
+    });
+  }, e => console.warn('Firestore error:', e));
+}
+
+// ── Patch openChat to start Firestore listener ───────────────
+const _origOpen = window.openChat;
+window.openChat = async function(contactId){
+  await _origOpen(contactId);
+  startListener(contactId);
+};
+
+// ── Patch closeChat to stop listener ────────────────────────
+const _origClose = window.closeChat;
+window.closeChat = function(){
+  if(unsub){ unsub(); unsub=null; }
+  _origClose();
+};
+
+// ── Patch sendMessage to ALSO write to Firestore ─────────────
+window.sendMessage = async function(){
+  const inp     = document.getElementById('msg-input');
+  const text    = inp.value.trim();
+  const contact = window.state?.activeContact;
+  if(!text || !contact) return;
+  inp.value=''; autoResize(inp);
+
+  const timeStr = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+
+  // Save to Firestore (real-time listener will display it)
+  try{
+    await addDoc(collection(db,'chats',roomId(contact.id),'messages'),
+      { text, sender:'me', time: timeStr, createdAt: serverTimestamp() });
+  } catch(e){ console.warn('Firestore write failed:',e); }
+
+  // Also update Flask backend for contact preview
+  try{
+    const res = await fetch('/api/send',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({contact_id:contact.id, text})
+    }).then(r=>r.json());
+    if(res.ok){
+      const c = window.state.contacts.find(x=>x.id===contact.id);
+      if(c){ c.last=text; c.time=timeStr; }
+      renderContacts(window.state.contacts);
+      if(contact.status==='online') simulateReply();
+    }
+  } catch(e){ console.warn('Flask API error:',e); }
+};
+
+console.log('🔥 Firebase connected — real-time chat active!');
+</script>
 </body>
 </html>
