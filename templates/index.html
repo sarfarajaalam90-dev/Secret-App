@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>Nexo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Sora:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+/* ── Reset & Tokens ─────────────────────────────────────── */
+*,::before,::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --nexo:#2563EB;
+  --nexo-dk:#1D4ED8;
+  --nexo-lt:#EFF6FF;
+  --nexo-mid:#BFDBFE;
+  --bg:#F8FAFC;
+  --surface:#FFFFFF;
+  --border:#E2E8F0;
+  --txt:#0F172A;
+  --txt2:#64748B;
+  --txt3:#94A3B8;
+  --online:#22C55E;
+  --away:#F59E0B;
+  --bubble-me:#2563EB;
+  --bubble-them:#F1F5F9;
+  --r:20px;
+  --sh:0 4px 24px rgba(37,99,235,.10);
+  --sh2:0 2px 8px rgba(0,0,0,.06);
+  --font:'Plus Jakarta Sans',sans-serif;
+  --font2:'Sora',sans-serif;
+}
+html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--txt);overflow:hidden}
+button{border:none;background:none;cursor:pointer;font-family:inherit}
+input{font-family:inherit;border:none;outline:none;background:none}
+img{display:block}
+svg{display:block}
+
+/* ── App Shell ──────────────────────────────────────────── */
+#app{width:100%;max-width:430px;height:100dvh;margin:0 auto;position:relative;background:var(--surface);display:flex;flex-direction:column;box-shadow:0 0 60px rgba(0,0,0,.12);overflow:hidden}
+
+/* ── Login Screen ───────────────────────────────────────── */
+#login-screen{
+  position:absolute;inset:0;z-index:100;
+  background:linear-gradient(160deg,#0F172A 0%,#1E3A8A 60%,#1D4ED8 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:32px 28px;gap:0;
+}
+.login-glow{
+  width:120px;height:120px;border-radius:32px;
+  background:linear-gradient(135deg,#2563EB,#60A5FA);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 60px rgba(96,165,250,.4);
+  margin-bottom:28px;
+}
+.login-logo{font-family:var(--font2);font-size:40px;font-weight:700;color:#fff;letter-spacing:-1px}
+.login-tagline{color:rgba(255,255,255,.55);font-size:14px;font-weight:300;margin-bottom:48px;letter-spacing:.5px}
+.login-card{
+  width:100%;background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:24px;padding:28px 24px;backdrop-filter:blur(20px);
+}
+.login-title{font-family:var(--font2);font-size:22px;font-weight:600;color:#fff;margin-bottom:6px}
+.login-sub{font-size:13px;color:rgba(255,255,255,.5);margin-bottom:28px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:12px;font-weight:600;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.field-wrap{
+  display:flex;align-items:center;gap:10px;
+  background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.14);
+  border-radius:14px;padding:0 16px;height:52px;
+  transition:border-color .2s;
+}
+.field-wrap:focus-within{border-color:rgba(96,165,250,.7)}
+.field-wrap svg{opacity:.5;flex-shrink:0}
+.field-wrap input{flex:1;color:#fff;font-size:15px;font-weight:400;background:none}
+.field-wrap input::placeholder{color:rgba(255,255,255,.3)}
+.pass-toggle{opacity:.45;cursor:pointer;transition:opacity .2s}
+.pass-toggle:hover{opacity:.8}
+#login-error{font-size:13px;color:#FCA5A5;margin-bottom:12px;display:none;padding:8px 12px;background:rgba(239,68,68,.1);border-radius:10px}
+.btn-login{
+  width:100%;height:52px;border-radius:14px;
+  background:linear-gradient(135deg,#2563EB,#60A5FA);
+  color:#fff;font-size:16px;font-weight:600;
+  letter-spacing:.3px;margin-top:4px;
+  box-shadow:0 8px 24px rgba(37,99,235,.5);
+  transition:transform .15s,box-shadow .15s;
+}
+.btn-login:active{transform:scale(.97);box-shadow:0 4px 12px rgba(37,99,235,.4)}
+.login-demo{margin-top:20px;text-align:center;font-size:12px;color:rgba(255,255,255,.35);line-height:1.8}
+.login-demo span{color:rgba(255,255,255,.55);font-weight:600}
+
+/* ── Top Bar ────────────────────────────────────────────── */
+#top-bar{
+  flex-shrink:0;height:64px;padding:0 16px;
+  display:flex;align-items:center;gap:12px;
+  border-bottom:1px solid var(--border);
+  background:var(--surface);position:relative;z-index:10;
+}
+.app-logo{font-family:var(--font2);font-size:24px;font-weight:700;color:var(--nexo);letter-spacing:-0.5px}
+#top-bar .spacer{flex:1}
+.icon-btn{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--txt2);transition:background .15s,color .15s}
+.icon-btn:hover,.icon-btn:active{background:var(--nexo-lt);color:var(--nexo)}
+
+/* Chat header (inside chat view) */
+#chat-header{
+  flex-shrink:0;height:64px;padding:0 8px 0 4px;
+  display:flex;align-items:center;gap:10px;
+  border-bottom:1px solid var(--border);
+  background:var(--surface);z-index:10;
+  display:none;
+}
+.back-btn{width:40px;height:40px;display:flex;align-items:center;justify-content:center;color:var(--txt2);border-radius:50%;transition:background .15s}
+.back-btn:hover{background:var(--nexo-lt)}
+.chat-hdr-info{flex:1;display:flex;align-items:center;gap:10px;overflow:hidden}
+.chat-hdr-name{font-weight:600;font-size:15px;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-hdr-status{font-size:12px;color:var(--online);display:flex;align-items:center;gap:4px}
+.chat-hdr-status.offline{color:var(--txt3)}
+.status-dot{width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block}
+.hdr-actions{display:flex;gap:4px}
+
+/* ── Pages ──────────────────────────────────────────────── */
+#pages{flex:1;overflow:hidden;position:relative}
+.page{position:absolute;inset:0;overflow-y:auto;display:none;flex-direction:column}
+.page.active{display:flex}
+
+/* ── Chats Page ─────────────────────────────────────────── */
+#page-chats{padding:0}
+.search-wrap{padding:14px 16px 10px;position:sticky;top:0;background:var(--surface);z-index:5}
+.search-box{
+  display:flex;align-items:center;gap:10px;
+  background:var(--bg);border:1.5px solid var(--border);
+  border-radius:14px;padding:0 14px;height:44px;
+  transition:border-color .2s;
+}
+.search-box:focus-within{border-color:var(--nexo-mid)}
+.search-box input{flex:1;font-size:14px;color:var(--txt)}
+.search-box input::placeholder{color:var(--txt3)}
+.section-label{padding:6px 16px 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--txt3)}
+
+/* Contact Row */
+.contact-row{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 16px;cursor:pointer;
+  transition:background .12s;position:relative;
+}
+.contact-row:active{background:var(--nexo-lt)}
+.avatar{
+  width:52px;height:52px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:16px;color:#fff;
+  position:relative;
+}
+.avatar-status{position:absolute;bottom:1px;right:1px;width:13px;height:13px;border-radius:50%;border:2.5px solid var(--surface)}
+.status-online{background:var(--online)}
+.status-offline{background:var(--txt3)}
+.status-away{background:var(--away)}
+.contact-info{flex:1;overflow:hidden}
+.contact-name{font-weight:600;font-size:15px;color:var(--txt)}
+.contact-last{font-size:13px;color:var(--txt2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.contact-meta{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
+.contact-time{font-size:11px;color:var(--txt3)}
+.unread-badge{min-width:20px;height:20px;border-radius:10px;background:var(--nexo);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 5px}
+
+/* ── Chat View ──────────────────────────────────────────── */
+#chat-view{display:none;flex-direction:column;flex:1;overflow:hidden;position:absolute;inset:0;z-index:20;background:var(--surface)}
+#chat-view.open{display:flex}
+
+#chat-bg{
+  flex:1;overflow-y:auto;
+  background-color:#EFF6FF;
+  background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%232563EB' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  padding:16px 12px;display:flex;flex-direction:column;gap:4px;
+}
+.msg-date-sep{text-align:center;font-size:11px;color:var(--txt3);font-weight:500;margin:10px 0;background:rgba(255,255,255,.7);display:inline-block;align-self:center;padding:3px 12px;border-radius:20px}
+
+/* Bubbles */
+.bubble-row{display:flex;margin-bottom:2px;align-items:flex-end;gap:6px}
+.bubble-row.me{flex-direction:row-reverse}
+.bubble-row.them .avatar-sm{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;margin-bottom:2px}
+.bubble-row.me .avatar-sm{display:none}
+.bubble{
+  max-width:72%;padding:10px 14px;border-radius:18px;
+  font-size:14.5px;line-height:1.5;word-break:break-word;
+  position:relative;
+}
+.bubble.me{background:var(--bubble-me);color:#fff;border-bottom-right-radius:5px}
+.bubble.them{background:var(--bubble-them);color:var(--txt);border-bottom-left-radius:5px}
+.bubble-time{font-size:10.5px;opacity:.55;margin-top:4px;display:flex;align-items:center;gap:4px;justify-content:flex-end}
+.bubble.them .bubble-time{justify-content:flex-start}
+.tick{display:inline-block}
+
+/* Input Bar */
+#chat-input-bar{
+  flex-shrink:0;padding:10px 12px;
+  background:var(--surface);border-top:1px solid var(--border);
+  display:flex;align-items:flex-end;gap:8px;
+}
+.msg-input-wrap{
+  flex:1;background:var(--bg);border:1.5px solid var(--border);
+  border-radius:22px;padding:10px 16px;
+  min-height:44px;max-height:120px;
+  display:flex;align-items:center;
+  transition:border-color .2s;
+}
+.msg-input-wrap:focus-within{border-color:var(--nexo-mid)}
+#msg-input{
+  flex:1;font-size:14.5px;color:var(--txt);resize:none;
+  line-height:1.45;background:none;
+  max-height:90px;overflow-y:auto;
+}
+#msg-input::placeholder{color:var(--txt3)}
+.send-btn{
+  width:44px;height:44px;border-radius:50%;
+  background:var(--nexo);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 14px rgba(37,99,235,.4);
+  transition:transform .15s,background .15s;flex-shrink:0;
+}
+.send-btn:active{transform:scale(.9)}
+
+/* ── Status Page ────────────────────────────────────────── */
+#page-status{padding:16px}
+.status-my{
+  background:var(--nexo-lt);border:1.5px dashed var(--nexo-mid);
+  border-radius:16px;padding:16px;display:flex;align-items:center;gap:14px;
+  margin-bottom:20px;cursor:pointer;transition:background .15s;
+}
+.status-my:hover{background:#DBEAFE}
+.status-add{width:52px;height:52px;border-radius:50%;background:var(--nexo);display:flex;align-items:center;justify-content:center;color:#fff;font-size:26px;flex-shrink:0}
+.status-my-text{font-weight:600;font-size:14px;color:var(--nexo)}
+.status-my-sub{font-size:12px;color:var(--txt3);margin-top:2px}
+.status-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.status-ring{width:56px;height:56px;border-radius:50%;border:2.5px solid var(--nexo);padding:3px;flex-shrink:0}
+.status-ring .avatar{width:100%;height:100%}
+.status-info .name{font-weight:600;font-size:14px}
+.status-info .time{font-size:12px;color:var(--txt3);margin-top:2px}
+
+/* ── Calls Page ─────────────────────────────────────────── */
+#page-calls{padding:16px}
+.call-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.call-info{flex:1}
+.call-name{font-weight:600;font-size:14px}
+.call-meta{font-size:12px;margin-top:2px;display:flex;align-items:center;gap:4px}
+.call-in{color:var(--online)}
+.call-out{color:var(--nexo)}
+.call-missed{color:#EF4444}
+.call-btn{width:40px;height:40px;border-radius:50%;background:var(--nexo-lt);display:flex;align-items:center;justify-content:center;color:var(--nexo)}
+
+/* ── Settings Page ──────────────────────────────────────── */
+#page-settings{padding:0}
+.settings-profile{
+  background:linear-gradient(135deg,var(--nexo) 0%,#60A5FA 100%);
+  padding:32px 20px 24px;display:flex;flex-direction:column;align-items:center;gap:12px;
+}
+.settings-avatar{width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.2);border:3px solid rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff}
+.settings-name{font-size:20px;font-weight:700;color:#fff;font-family:var(--font2)}
+.settings-mobile{font-size:13px;color:rgba(255,255,255,.7)}
+.settings-section{padding:8px 0}
+.settings-label{padding:12px 20px 4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--txt3)}
+.settings-row{display:flex;align-items:center;gap:14px;padding:14px 20px;cursor:pointer;transition:background .12s}
+.settings-row:active{background:var(--nexo-lt)}
+.settings-icon{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.settings-row-info{flex:1}
+.settings-row-name{font-size:14px;font-weight:500;color:var(--txt)}
+.settings-row-sub{font-size:12px;color:var(--txt3);margin-top:1px}
+.settings-chevron{color:var(--txt3)}
+.logout-row{color:#EF4444}
+.logout-row .settings-icon{background:#FEF2F2}
+.logout-row .settings-row-name{color:#EF4444}
+
+/* ── Bottom Nav ─────────────────────────────────────────── */
+#bottom-nav{
+  flex-shrink:0;height:64px;
+  border-top:1px solid var(--border);
+  background:var(--surface);
+  display:grid;grid-template-columns:repeat(4,1fr);
+  padding-bottom:env(safe-area-inset-bottom,0);
+}
+.nav-item{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:4px;cursor:pointer;position:relative;
+  color:var(--txt3);transition:color .15s;
+}
+.nav-item.active{color:var(--nexo)}
+.nav-label{font-size:10.5px;font-weight:600;letter-spacing:.3px}
+.nav-indicator{
+  position:absolute;top:8px;left:50%;transform:translateX(-50%);
+  width:32px;height:3px;border-radius:2px;background:var(--nexo);
+  opacity:0;transition:opacity .2s;
+}
+.nav-item.active .nav-indicator{opacity:1}
+.nav-badge{position:absolute;top:6px;right:calc(50% - 22px);min-width:16px;height:16px;border-radius:8px;background:#EF4444;color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 3px;border:2px solid var(--surface)}
+
+/* ── Toast ──────────────────────────────────────────────── */
+#toast{
+  position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:#0F172A;color:#fff;font-size:13px;font-weight:500;
+  padding:10px 20px;border-radius:24px;
+  box-shadow:0 8px 30px rgba(0,0,0,.2);
+  opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;z-index:999;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── Typing Indicator ───────────────────────────────────── */
+.typing-row{display:flex;align-items:flex-end;gap:6px;margin-bottom:2px}
+.typing-bubble{background:var(--bubble-them);border-radius:18px 18px 18px 5px;padding:12px 16px;display:flex;gap:4px;align-items:center}
+.typing-dot{width:7px;height:7px;border-radius:50%;background:var(--txt3);animation:typingBounce 1.2s infinite}
+.typing-dot:nth-child(2){animation-delay:.2s}
+.typing-dot:nth-child(3){animation-delay:.4s}
+@keyframes typingBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+
+/* ── Util ───────────────────────────────────────────────── */
+.divider{height:1px;background:var(--border);margin:0 16px}
+.coming-soon{
+  position:absolute;top:72px;right:12px;background:#0F172A;color:#fff;
+  font-size:12px;padding:6px 14px;border-radius:12px;
+  box-shadow:var(--sh);pointer-events:none;opacity:0;
+  transition:opacity .2s;z-index:50;
+}
+.coming-soon::before{content:'';position:absolute;top:-5px;right:20px;width:10px;height:10px;background:#0F172A;transform:rotate(45deg)}
+
+/* scroll */
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ── Login ── -->
+  <div id="login-screen">
+    <div class="login-glow">
+      <span class="login-logo">N</span>
+    </div>
+    <p style="font-family:var(--font2);font-size:28px;font-weight:700;color:#fff;letter-spacing:-0.5px;margin-bottom:6px">Nexo</p>
+    <p class="login-tagline">Connect. Instantly. Always.</p>
+
+    <div class="login-card">
+      <p class="login-title">Welcome back</p>
+      <p class="login-sub">Sign in to continue</p>
+      <div id="login-error"></div>
+
+      <div class="field">
+        <label>Mobile Number</label>
+        <div class="field-wrap">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>
+          <input type="tel" id="inp-mobile" placeholder="Enter mobile number" inputmode="numeric"/>
+        </div>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <div class="field-wrap">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <input type="password" id="inp-pass" placeholder="Enter password"/>
+          <span class="pass-toggle" id="pass-toggle" onclick="togglePass()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </span>
+        </div>
+      </div>
+
+      <button class="btn-login" onclick="doLogin()">Sign In</button>
+      <p class="login-demo">Demo: <span>9800000001</span> / <span>password123</span></p>
+    </div>
+  </div>
+
+  <!-- ── Top Bar (main app) ── -->
+  <div id="top-bar" style="display:none">
+    <span class="app-logo">Nexo</span>
+    <div class="spacer"></div>
+    <button class="icon-btn" title="Search">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </button>
+    <button class="icon-btn" title="More">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="19" r="1.5" fill="currentColor"/></svg>
+    </button>
+  </div>
+
+  <!-- ── Chat Header (inside chat view) ── -->
+  <div id="chat-header">
+    <button class="back-btn" onclick="closeChat()">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+    </button>
+    <div class="chat-hdr-info">
+      <div class="avatar" id="chat-hdr-avatar" style="width:40px;height:40px;font-size:13px"></div>
+      <div>
+        <div class="chat-hdr-name" id="chat-hdr-name"></div>
+        <div class="chat-hdr-status" id="chat-hdr-status">
+          <span class="status-dot"></span><span id="chat-hdr-status-txt">Online</span>
+        </div>
+      </div>
+    </div>
+    <div class="hdr-actions">
+      <button class="icon-btn" id="btn-voice" onclick="comingSoon('voice')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.61 19a19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.916-8.197A2 2 0 0 1 3.659 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      </button>
+      <button class="icon-btn" id="btn-video" onclick="comingSoon('video')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+      </button>
+    </div>
+    <div class="coming-soon" id="coming-soon-tip">Coming Soon 🚀</div>
+  </div>
+
+  <!-- ── Pages ── -->
+  <div id="pages" style="display:none">
+
+    <!-- Chats -->
+    <div class="page active" id="page-chats">
+      <div class="search-wrap">
+        <div class="search-box">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--txt3)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Search chats..." oninput="filterContacts(this.value)"/>
+        </div>
+      </div>
+      <div class="section-label">Messages</div>
+      <div id="contacts-list"></div>
+    </div>
+
+    <!-- Status -->
+    <div class="page" id="page-status">
+      <div class="status-my">
+        <div class="status-add">+</div>
+        <div>
+          <div class="status-my-text">Add to my status</div>
+          <div class="status-my-sub">Photos, videos, text</div>
+        </div>
+      </div>
+      <div class="section-label" style="padding:0 0 8px">Recent updates</div>
+      <div id="status-list"></div>
+    </div>
+
+    <!-- Calls -->
+    <div class="page" id="page-calls">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <p style="font-size:18px;font-weight:700;font-family:var(--font2)">Recent Calls</p>
+        <button style="color:var(--nexo);font-size:13px;font-weight:600">Clear all</button>
+      </div>
+      <div id="calls-list"></div>
+    </div>
+
+    <!-- Settings -->
+    <div class="page" id="page-settings">
+      <div class="settings-profile">
+        <div class="settings-avatar" id="settings-avatar">?</div>
+        <div class="settings-name" id="settings-name">Loading...</div>
+        <div class="settings-mobile" id="settings-mobile"></div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-label">Account</div>
+        <div class="settings-row"><div class="settings-icon" style="background:#EFF6FF"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="settings-row-info"><div class="settings-row-name">Profile</div><div class="settings-row-sub">Edit name, photo, bio</div></div><svg class="settings-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
+        <div class="divider"></div>
+        <div class="settings-row"><div class="settings-icon" style="background:#F0FDF4"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><div class="settings-row-info"><div class="settings-row-name">Privacy & Security</div><div class="settings-row-sub">Last seen, blocked contacts</div></div><svg class="settings-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
+      </div>
+      <div class="divider"></div>
+      <div class="settings-section">
+        <div class="settings-label">Preferences</div>
+        <div class="settings-row"><div class="settings-icon" style="background:#FEF3C7"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg></div><div class="settings-row-info"><div class="settings-row-name">Notifications</div><div class="settings-row-sub">Sounds, alerts, badges</div></div><svg class="settings-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
+        <div class="divider"></div>
+        <div class="settings-row"><div class="settings-icon" style="background:#F5F3FF"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg></div><div class="settings-row-info"><div class="settings-row-name">Chat Wallpaper</div><div class="settings-row-sub">Customize background</div></div><svg class="settings-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
+      </div>
+      <div class="divider"></div>
+      <div class="settings-section">
+        <div class="settings-row logout-row" onclick="doLogout()"><div class="settings-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div><div class="settings-row-info"><div class="settings-row-name">Sign Out</div></div></div>
+      </div>
+      <div style="height:20px"></div>
+    </div>
+
+  </div>
+
+  <!-- ── Chat View (overlay) ── -->
+  <div id="chat-view">
+    <div id="chat-bg" id="messages-area"></div>
+    <div id="chat-input-bar">
+      <button class="icon-btn">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </button>
+      <div class="msg-input-wrap">
+        <textarea id="msg-input" placeholder="Message..." rows="1" oninput="autoResize(this)" onkeydown="handleMsgKey(event)"></textarea>
+      </div>
+      <button class="icon-btn">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+      </button>
+      <button class="send-btn" onclick="sendMessage()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Bottom Nav ── -->
+  <div id="bottom-nav" style="display:none">
+    <div class="nav-item active" id="nav-chats" onclick="switchTab('chats')">
+      <div class="nav-indicator"></div>
+      <div class="nav-badge" id="nav-badge">8</div>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span class="nav-label">Chats</span>
+    </div>
+    <div class="nav-item" id="nav-status" onclick="switchTab('status')">
+      <div class="nav-indicator"></div>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32"/></svg>
+      <span class="nav-label">Status</span>
+    </div>
+    <div class="nav-item" id="nav-calls" onclick="switchTab('calls')">
+      <div class="nav-indicator"></div>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.61 19a19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.916-8.197A2 2 0 0 1 3.659 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      <span class="nav-label">Calls</span>
+    </div>
+    <div class="nav-item" id="nav-settings" onclick="switchTab('settings')">
+      <div class="nav-indicator"></div>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      <span class="nav-label">Settings</span>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────
+let state = {
+  user: null,
+  contacts: [],
+  activeContact: null,
+  messages: {},
+  currentTab: 'chats'
+};
+
+const AVATAR_COLORS = ['#2563EB','#7C3AED','#059669','#D97706','#DC2626','#0891B2','#BE185D','#65A30D'];
+function avatarColor(name){ let h=0; for(let c of name) h=c.charCodeAt(0)+((h<<5)-h); return AVATAR_COLORS[Math.abs(h)%AVATAR_COLORS.length]; }
+
+// ── API helpers ────────────────────────────────────────────
+async function api(path, opts={}){
+  try{
+    const r = await fetch(path, {
+      headers:{'Content-Type':'application/json'},
+      ...opts,
+      body: opts.body ? JSON.stringify(opts.body) : undefined
+    });
+    return await r.json();
+  } catch(e){ return {ok:false,error:'Network error'}; }
+}
+
+// ── Login ──────────────────────────────────────────────────
+function togglePass(){
+  const inp = document.getElementById('inp-pass');
+  inp.type = inp.type==='password' ? 'text' : 'password';
+}
+
+async function doLogin(){
+  const mobile = document.getElementById('inp-mobile').value.trim();
+  const pass   = document.getElementById('inp-pass').value;
+  const errEl  = document.getElementById('login-error');
+  errEl.style.display='none';
+
+  if(!mobile||!pass){ showErr('Please fill in all fields.'); return; }
+
+  const btn = document.querySelector('.btn-login');
+  btn.textContent='Signing in…'; btn.disabled=true;
+
+  const res = await api('/api/login', {method:'POST', body:{mobile, password:pass}});
+  btn.textContent='Sign In'; btn.disabled=false;
+
+  if(res.ok){
+    state.user = {name:res.name, avatar:res.avatar, mobile};
+    bootApp();
+  } else {
+    showErr(res.error||'Login failed. Try again.');
+  }
+}
+
+function showErr(msg){
+  const e = document.getElementById('login-error');
+  e.textContent=msg; e.style.display='block';
+}
+
+document.getElementById('inp-pass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+document.getElementById('inp-mobile').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('inp-pass').focus(); });
+
+// ── Boot App ───────────────────────────────────────────────
+async function bootApp(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('top-bar').style.display='flex';
+  document.getElementById('pages').style.display='block';
+  document.getElementById('bottom-nav').style.display='grid';
+
+  // Settings profile
+  document.getElementById('settings-avatar').textContent = state.user.avatar;
+  document.getElementById('settings-avatar').style.background = avatarColor(state.user.name);
+  document.getElementById('settings-name').textContent  = state.user.name;
+  document.getElementById('settings-mobile').textContent = '+91 '+state.user.mobile;
+
+  await loadContacts();
+  await loadStatus();
+  renderCalls();
+}
+
+async function doLogout(){
+  await api('/api/logout',{method:'POST'});
+  state = {user:null,contacts:[],activeContact:null,messages:{},currentTab:'chats'};
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('top-bar').style.display='none';
+  document.getElementById('pages').style.display='none';
+  document.getElementById('bottom-nav').style.display='none';
+  document.getElementById('chat-view').classList.remove('open');
+  document.getElementById('chat-header').style.display='none';
+  switchTab('chats');
+}
+
+// ── Contacts ───────────────────────────────────────────────
+async function loadContacts(){
+  const res = await api('/api/contacts');
+  state.contacts = Array.isArray(res) ? res : [];
+  renderContacts(state.contacts);
+}
+
+function renderContacts(contacts){
+  const el = document.getElementById('contacts-list');
+  el.innerHTML = contacts.map(c=>`
+    <div class="contact-row" onclick="openChat('${c.id}')">
+      <div class="avatar" style="background:${avatarColor(c.name)}">
+        ${c.avatar}
+        <div class="avatar-status status-${c.status}"></div>
+      </div>
+      <div class="contact-info">
+        <div class="contact-name">${c.name}</div>
+        <div class="contact-last">${c.last}</div>
+      </div>
+      <div class="contact-meta">
+        <div class="contact-time">${c.time}</div>
+        ${c.unread ? `<div class="unread-badge">${c.unread}</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterContacts(q){
+  const filtered = state.contacts.filter(c=>c.name.toLowerCase().includes(q.toLowerCase())||c.last.toLowerCase().includes(q.toLowerCase()));
+  renderContacts(filtered);
+}
+
+// ── Chat ───────────────────────────────────────────────────
+async function openChat(contactId){
+  const contact = state.contacts.find(c=>c.id===contactId);
+  if(!contact) return;
+  state.activeContact = contact;
+
+  // Update header
+  const hdrAvatar = document.getElementById('chat-hdr-avatar');
+  hdrAvatar.textContent = contact.avatar;
+  hdrAvatar.style.background = avatarColor(contact.name);
+  document.getElementById('chat-hdr-name').textContent = contact.name;
+  const statusEl = document.getElementById('chat-hdr-status');
+  const statusTxt = document.getElementById('chat-hdr-status-txt');
+  statusEl.className = 'chat-hdr-status'+(contact.status!=='online'?' offline':'');
+  statusTxt.textContent = contact.status==='online'?'Online':contact.status==='away'?'Away':'Last seen recently';
+
+  // Load messages
+  const msgs = await api(`/api/messages/${contactId}`);
+  state.messages[contactId] = Array.isArray(msgs) ? msgs : [];
+
+  // Clear unread badge
+  contact.unread = 0;
+  renderContacts(state.contacts);
+
+  renderMessages();
+
+  document.getElementById('top-bar').style.display='none';
+  document.getElementById('chat-header').style.display='flex';
+  document.getElementById('chat-view').classList.add('open');
+  document.getElementById('pages').style.display='none';
+  document.getElementById('bottom-nav').style.display='none';
+
+  scrollToBottom();
+  if(contact.status==='online') simulateTyping();
+}
+
+function closeChat(){
+  document.getElementById('chat-view').classList.remove('open');
+  document.getElementById('chat-header').style.display='none';
+  document.getElementById('top-bar').style.display='flex';
+  document.getElementById('pages').style.display='block';
+  document.getElementById('bottom-nav').style.display='grid';
+  state.activeContact=null;
+}
+
+function renderMessages(){
+  const area = document.getElementById('chat-bg');
+  const msgs = state.messages[state.activeContact?.id] || [];
+  const contact = state.activeContact;
+  area.innerHTML = `<div class="msg-date-sep">Today</div>` + msgs.map(m=>`
+    <div class="bubble-row ${m.sender}">
+      ${m.sender==='them'?`<div class="avatar-sm" style="background:${avatarColor(contact.name)};font-size:10px;font-weight:700;color:#fff;width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;">${contact.avatar}</div>`:''}
+      <div class="bubble ${m.sender}">
+        ${escHtml(m.text)}
+        <div class="bubble-time">
+          ${m.time}
+          ${m.sender==='me'?'<span class="tick"><svg width="14" height="10" viewBox="0 0 14 10" fill="none"><path d="M1 5l3 3 5-7" stroke="#a5f3fc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 5l3 3 5-7" stroke="#a5f3fc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>':''}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function appendMessage(msg){
+  const contact = state.activeContact;
+  const area = document.getElementById('chat-bg');
+  const div = document.createElement('div');
+  div.className = `bubble-row ${msg.sender}`;
+  div.innerHTML = `
+    ${msg.sender==='them'?`<div style="width:28px;height:28px;border-radius:50%;flex-shrink:0;background:${avatarColor(contact.name)};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff">${contact.avatar}</div>`:''}
+    <div class="bubble ${msg.sender}">
+      ${escHtml(msg.text)}
+      <div class="bubble-time">
+        ${msg.time}
+        ${msg.sender==='me'?'<span class="tick"><svg width="14" height="10" viewBox="0 0 14 10" fill="none"><path d="M1 5l3 3 5-7" stroke="#a5f3fc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 5l3 3 5-7" stroke="#a5f3fc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>':''}
+      </div>
+    </div>`;
+  area.appendChild(div);
+  scrollToBottom();
+}
+
+async function sendMessage(){
+  const inp = document.getElementById('msg-input');
+  const text = inp.value.trim();
+  if(!text || !state.activeContact) return;
+  inp.value=''; autoResize(inp);
+
+  const res = await api('/api/send',{method:'POST',body:{contact_id:state.activeContact.id,text}});
+  if(res.ok){
+    if(!state.messages[state.activeContact.id]) state.messages[state.activeContact.id]=[];
+    state.messages[state.activeContact.id].push(res.message);
+    appendMessage(res.message);
+    // Update contact preview
+    const c = state.contacts.find(x=>x.id===state.activeContact.id);
+    if(c){ c.last=text; c.time=res.message.time; }
+    renderContacts(state.contacts);
+    if(state.activeContact.status==='online') simulateReply();
+  }
+}
+
+function handleMsgKey(e){
+  if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendMessage(); }
+}
+
+function autoResize(el){
+  el.style.height='auto';
+  el.style.height=Math.min(el.scrollHeight,90)+'px';
+}
+
+function scrollToBottom(){
+  const area = document.getElementById('chat-bg');
+  requestAnimationFrame(()=>{ area.scrollTop=area.scrollHeight; });
+}
+
+// ── Simulated replies ──────────────────────────────────────
+const REPLIES = [
+  "Got it! 👍","Sure thing!","On my way!","Haha yes exactly 😂",
+  "That's great news!","Let me check and get back to you","Sounds perfect!",
+  "Will do 🙌","Okay cool 😎","Interesting... tell me more","❤️","👏 Amazing!"
+];
+
+let typingTimeout;
+function simulateTyping(){
+  clearTimeout(typingTimeout);
+  typingTimeout = setTimeout(()=>{
+    const area = document.getElementById('chat-bg');
+    const td = document.createElement('div');
+    td.className='typing-row'; td.id='typing-indicator';
+    td.innerHTML=`<div class="avatar-sm" style="width:28px;height:28px;border-radius:50%;background:${avatarColor(state.activeContact?.name||'')};display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff">${state.activeContact?.avatar||''}</div><div class="typing-bubble"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>`;
+    area.appendChild(td); scrollToBottom();
+    setTimeout(()=>{ const t=document.getElementById('typing-indicator'); if(t) t.remove(); },3000);
+  },600);
+}
+
+function simulateReply(){
+  simulateTyping();
+  setTimeout(async()=>{
+    const contact = state.activeContact;
+    if(!contact) return;
+    const text = REPLIES[Math.floor(Math.random()*REPLIES.length)];
+    const msg = {id:'auto'+Date.now(),text,sender:'them',time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})};
+    if(state.messages[contact.id]) state.messages[contact.id].push(msg);
+    const ti = document.getElementById('typing-indicator');
+    if(ti) ti.remove();
+    appendMessage(msg);
+    const c = state.contacts.find(x=>x.id===contact.id);
+    if(c){ c.last=text; c.time=msg.time; }
+    renderContacts(state.contacts);
+  }, 2200);
+}
+
+// ── Status ─────────────────────────────────────────────────
+async function loadStatus(){
+  const res = await api('/api/status');
+  const list = document.getElementById('status-list');
+  const statuses = Array.isArray(res) ? res : [];
+  list.innerHTML = statuses.map(s=>`
+    <div class="status-item">
+      <div class="status-ring">
+        <div class="avatar" style="width:100%;height:100%;background:${avatarColor(s.contact)};font-size:13px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;border-radius:50%">${s.avatar}</div>
+      </div>
+      <div class="status-info">
+        <div class="name">${s.contact}</div>
+        <div class="time">${s.time}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── Calls ──────────────────────────────────────────────────
+const CALL_DATA = [
+  {name:'Jamie Patel',avatar:'JP',type:'in',label:'Incoming · Voice',time:'10:40 AM'},
+  {name:'Priya Nair', avatar:'PN',type:'missed',label:'Missed · Video',time:'9:00 AM'},
+  {name:'Sam Torres', avatar:'ST',type:'out',label:'Outgoing · Voice',time:'Yesterday'},
+  {name:'Zara Okonkwo',avatar:'ZO',type:'in',label:'Incoming · Voice',time:'Mon'},
+];
+
+function renderCalls(){
+  const el = document.getElementById('calls-list');
+  el.innerHTML = CALL_DATA.map(c=>`
+    <div class="call-item">
+      <div class="avatar" style="width:48px;height:48px;font-size:14px;flex-shrink:0;background:${avatarColor(c.name)}">${c.avatar}</div>
+      <div class="call-info">
+        <div class="call-name">${c.name}</div>
+        <div class="call-meta call-${c.type}">
+          ${c.type==='in'?'↙':'↗'} ${c.label} · ${c.time}
+        </div>
+      </div>
+      <button class="call-btn" onclick="showToast('Calling feature coming soon 🚀')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.61 19a19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.916-8.197A2 2 0 0 1 3.659 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      </button>
+    </div>
+  `).join('');
+}
+
+// ── Tabs ───────────────────────────────────────────────────
+function switchTab(tab){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('nav-'+tab).classList.add('active');
+  document.getElementById('page-'+tab).classList.add('active');
+  state.currentTab = tab;
+}
+
+// ── Toast ──────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ── Coming Soon ────────────────────────────────────────────
+let csTimer;
+function comingSoon(type){
+  const tip = document.getElementById('coming-soon-tip');
+  tip.style.opacity='1';
+  clearTimeout(csTimer);
+  csTimer=setTimeout(()=>{ tip.style.opacity='0'; },2000);
+  showToast(type==='voice'?'🎙 Voice calls coming soon!':'📹 Video calls coming soon!');
+}
+
+// ── Util ───────────────────────────────────────────────────
+function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+</body>
+</html>
