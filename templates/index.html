@@ -333,6 +333,62 @@ svg{display:block}
 }
 .coming-soon::before{content:'';position:absolute;top:-5px;right:20px;width:10px;height:10px;background:#0F172A;transform:rotate(45deg)}
 
+
+/* ── New Chat Modal ─────────────────────────────────────── */
+#new-chat-modal{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(0,0,0,.5);backdrop-filter:blur(4px);
+  display:none;align-items:flex-end;justify-content:center;
+}
+#new-chat-modal.open{display:flex}
+.modal-sheet{
+  width:100%;max-width:430px;background:var(--surface);
+  border-radius:24px 24px 0 0;padding:20px 20px 36px;
+  animation:slideUp .25s ease;
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px}
+.modal-title{font-family:var(--font2);font-size:18px;font-weight:700;color:var(--txt);margin-bottom:16px}
+.modal-input-wrap{
+  display:flex;align-items:center;gap:10px;
+  background:var(--bg);border:1.5px solid var(--border);
+  border-radius:14px;padding:0 14px;height:52px;margin-bottom:14px;
+  transition:border-color .2s;
+}
+.modal-input-wrap:focus-within{border-color:var(--nexo-mid)}
+.modal-input-wrap input{flex:1;font-size:15px;color:var(--txt)}
+.modal-input-wrap input::placeholder{color:var(--txt3)}
+#user-search-result{min-height:60px;display:flex;align-items:center;justify-content:center}
+.user-found{
+  width:100%;display:flex;align-items:center;gap:12px;
+  padding:12px;background:var(--nexo-lt);border-radius:14px;
+}
+.user-found .uname{font-weight:600;font-size:15px;color:var(--txt)}
+.user-found .umobile{font-size:12px;color:var(--txt3);margin-top:2px}
+.user-not-found{color:var(--txt3);font-size:14px;text-align:center}
+.btn-add-contact{
+  margin-left:auto;flex-shrink:0;
+  background:var(--nexo);color:#fff;
+  border-radius:10px;padding:8px 16px;
+  font-size:13px;font-weight:600;
+  transition:background .15s;
+}
+.btn-add-contact:active{background:var(--nexo-dk)}
+.btn-add-contact:disabled{background:var(--txt3);cursor:not-allowed}
+.modal-searching{color:var(--txt3);font-size:13px}
+/* FAB new chat button */
+#fab-new-chat{
+  position:absolute;bottom:76px;right:16px;
+  width:56px;height:56px;border-radius:50%;
+  background:var(--nexo);color:#fff;
+  display:none;align-items:center;justify-content:center;
+  box-shadow:0 4px 20px rgba(37,99,235,.4);
+  font-size:28px;z-index:10;
+  transition:transform .15s;
+}
+#fab-new-chat.visible{display:flex}
+#fab-new-chat:active{transform:scale(.92)}
+
 /* scroll */
 ::-webkit-scrollbar{width:3px}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
@@ -579,6 +635,26 @@ svg{display:block}
 
 </div>
 
+  <!-- ── FAB New Chat ── -->
+  <button id="fab-new-chat" onclick="openNewChatModal()" title="New Chat">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  </button>
+
+  <!-- ── New Chat Modal ── -->
+  <div id="new-chat-modal" onclick="handleModalBgClick(event)">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <p class="modal-title">➕ New Chat</p>
+      <div class="modal-input-wrap">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--txt3)"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>
+        <input type="tel" id="search-mobile-inp" placeholder="Enter friend's mobile number" inputmode="numeric" oninput="onSearchInput(this.value)"/>
+      </div>
+      <div id="user-search-result">
+        <p class="user-not-found" id="search-hint" style="color:var(--txt3)">Type a mobile number to search</p>
+      </div>
+    </div>
+  </div>
+
 <div id="toast"></div>
 
 <script>
@@ -683,9 +759,9 @@ async function doLogout(){
 
 // ── Contacts ───────────────────────────────────────────────
 async function loadContacts(){
-  const res = await api('/api/contacts');
-  state.contacts = Array.isArray(res) ? res : [];
-  renderContacts(state.contacts);
+  // Firestore version loads contacts — see Firebase module below
+  // Flask fallback removed; contacts come from Firestore only
+  renderContacts(state.contacts); // render whatever is already loaded
 }
 
 function renderContacts(contacts){
@@ -915,6 +991,8 @@ function switchTab(tab){
   document.getElementById('nav-'+tab).classList.add('active');
   document.getElementById('page-'+tab).classList.add('active');
   state.currentTab = tab;
+  const fab = document.getElementById('fab-new-chat');
+  if(fab){ fab.classList.toggle('visible', tab==='chats'); }
 }
 
 // ── Toast ──────────────────────────────────────────────────
@@ -939,6 +1017,19 @@ function comingSoon(type){
 // ── Util ───────────────────────────────────────────────────
 function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+// ── New Chat Modal stubs (logic injected by Firebase module) ───────────────
+function openNewChatModal(){
+  const m = document.getElementById('new-chat-modal');
+  if(m){ m.classList.add('open'); document.getElementById('search-mobile-inp').focus(); }
+}
+function closeNewChatModal(){
+  const m = document.getElementById('new-chat-modal');
+  if(m){ m.classList.remove('open'); document.getElementById('search-mobile-inp').value=''; document.getElementById('user-search-result').innerHTML='<p class="user-not-found" style="color:var(--txt3)">Type a mobile number to search</p>'; }
+}
+function handleModalBgClick(e){ if(e.target===document.getElementById('new-chat-modal')) closeNewChatModal(); }
+// onSearchInput is overridden by Firebase module
+function onSearchInput(v){ }
+
 // ── Expose everything the Firebase module needs ─────────────
 window.bootApp        = bootApp;
 window.renderContacts = renderContacts;
@@ -952,6 +1043,8 @@ window.showErr        = showErr;
 window.hideErr        = hideErr;
 window.openChat       = openChat;
 window.closeChat      = closeChat;
+window.switchTab      = switchTab;
+window.filterContacts = filterContacts;
 </script>
 
 <!-- ── Firebase SDK (module) ── -->
@@ -959,7 +1052,8 @@ window.closeChat      = closeChat;
 import { initializeApp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, addDoc, onSnapshot,
-         query, orderBy, serverTimestamp, doc, setDoc, getDoc }
+         query, orderBy, serverTimestamp, doc, setDoc, getDoc,
+         getDocs, where }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getAuth, createUserWithEmailAndPassword,
          signInWithEmailAndPassword, signOut, onAuthStateChanged }
@@ -1150,7 +1244,128 @@ window.sendMessage = async function(){
   } catch(e){ console.warn('Flask API error:',e); }
 };
 
-console.log('🔥 Firebase Auth + Firestore connected!');
+// ── Load user's contacts from Firestore ─────────────────────
+async function loadFirestoreContacts(){
+  const uid = window.state?.user?.uid;
+  if(!uid) return;
+  try{
+    const snap = await getDocs(collection(db,'users',uid,'contacts'));
+    const contacts = [];
+    snap.forEach(d=>{ contacts.push({...d.data(), id: d.id}); });
+    // Sort by name
+    contacts.sort((a,b)=>a.name.localeCompare(b.name));
+    window.state.contacts = contacts;
+    renderContacts(contacts);
+  }catch(e){ console.warn('loadFirestoreContacts error:',e); }
+}
+
+// Patch bootApp to load Firestore contacts
+const _origBoot = window.bootApp;
+window.bootApp = async function(){
+  await _origBoot();
+  await loadFirestoreContacts();
+  // Show FAB
+  const fab = document.getElementById('fab-new-chat');
+  if(fab) fab.classList.add('visible');
+};
+
+// ── Search user by mobile & add as contact ───────────────────
+let searchTimer = null;
+
+window.onSearchInput = async function(val){
+  const mobile = val.trim().replace(/\D/g,'');
+  const resultEl = document.getElementById('user-search-result');
+
+  if(mobile.length < 7){
+    resultEl.innerHTML = '<p class="user-not-found" style="color:var(--txt3)">Type a mobile number to search</p>';
+    return;
+  }
+
+  clearTimeout(searchTimer);
+  resultEl.innerHTML = '<p class="modal-searching">🔍 Searching…</p>';
+
+  searchTimer = setTimeout(async()=>{
+    try{
+      // Search Firestore users collection where mobile == entered number
+      const q = query(collection(db,'users'), where('mobile','==', mobile));
+      const snap = await getDocs(q);
+
+      const myUid   = window.state?.user?.uid;
+      const myMobile = window.state?.user?.mobile?.replace(/\D/g,'');
+
+      if(snap.empty || mobile === myMobile){
+        resultEl.innerHTML = snap.empty
+          ? '<p class="user-not-found">😕 No user found with this number.<br><small style="color:var(--txt3)">They must sign up on Nexo first.</small></p>'
+          : '<p class="user-not-found">That's your own number!</p>';
+        return;
+      }
+
+      const foundDoc  = snap.docs[0];
+      const foundData = foundDoc.data();
+      const foundUid  = foundDoc.id;
+      const foundName = foundData.name || 'Nexo User';
+      const av = foundName.trim().split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+
+      // Check if already a contact
+      const alreadyContact = window.state.contacts.find(c=>c.uid===foundUid || c.mobile===mobile);
+
+      resultEl.innerHTML = \`
+        <div class="user-found">
+          <div class="avatar" style="width:44px;height:44px;font-size:14px;flex-shrink:0;background:\${avatarColor(foundName)}">\${av}</div>
+          <div style="flex:1;overflow:hidden">
+            <div class="uname">\${foundName}</div>
+            <div class="umobile">+\${mobile}</div>
+          </div>
+          <button class="btn-add-contact" \${alreadyContact?'disabled':''} onclick="addContact('\${foundUid}','\${foundName}','\${mobile}','\${av}')">
+            \${alreadyContact ? '✓ Added' : '+ Add'}
+          </button>
+        </div>
+      \`;
+    }catch(e){
+      console.warn('Search error:',e);
+      resultEl.innerHTML = '<p class="user-not-found">Search failed. Try again.</p>';
+    }
+  }, 600);
+};
+
+// ── Add contact to Firestore ─────────────────────────────────
+window.addContact = async function(foundUid, foundName, mobile, av){
+  const myUid = window.state?.user?.uid;
+  if(!myUid){ showToast('Please login first'); return; }
+
+  const btn = document.querySelector('.btn-add-contact');
+  if(btn){ btn.disabled=true; btn.textContent='Adding…'; }
+
+  try{
+    const contactData = {
+      uid:    foundUid,
+      name:   foundName,
+      mobile: mobile,
+      avatar: av,
+      status: 'online',
+      last:   'Say hello! 👋',
+      time:   new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
+      unread: 0,
+      addedAt: serverTimestamp()
+    };
+
+    // Save to YOUR contacts subcollection using their UID as doc ID
+    await setDoc(doc(db,'users',myUid,'contacts',foundUid), contactData);
+
+    // Update local state
+    window.state.contacts.unshift({...contactData, id: foundUid});
+    renderContacts(window.state.contacts);
+
+    showToast('✅ ' + foundName + ' added to contacts!');
+    closeNewChatModal();
+  }catch(e){
+    console.warn('addContact error:',e);
+    showToast('❌ Failed to add contact. Try again.');
+    if(btn){ btn.disabled=false; btn.textContent='+ Add'; }
+  }
+};
+
+console.log('🔥 Firebase Auth + Firestore + Contacts connected!');
 </script>
 </body>
 </html>
