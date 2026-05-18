@@ -392,7 +392,140 @@ svg{display:block}
 /* scroll */
 ::-webkit-scrollbar{width:3px}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+/* ── Calling Overlay ───────────────────────────────────────── */
+#call-overlay{
+  position:fixed;inset:0;background:#0a0a1a;z-index:9999;
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  font-family:var(--font1);
+}
+#call-overlay.active{ display:flex; }
+#remote-video-wrap{
+  position:absolute;inset:0;background:#111;
+  display:flex;align-items:center;justify-content:center;
+}
+#remote-video-wrap video{ width:100%;height:100%;object-fit:cover; }
+#remote-avatar-placeholder{
+  width:110px;height:110px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:40px;font-weight:700;color:#fff;
+  background:var(--nexo-blue);
+  box-shadow:0 0 0 12px rgba(100,160,255,.15);
+}
+#local-video-wrap{
+  position:absolute;bottom:90px;right:18px;
+  width:100px;height:140px;border-radius:16px;overflow:hidden;
+  border:2px solid rgba(255,255,255,.25);background:#222;
+  display:none;
+}
+#local-video-wrap video{ width:100%;height:100%;object-fit:cover; }
+.call-info{
+  position:relative;z-index:2;text-align:center;margin-bottom:auto;margin-top:60px;
+}
+.call-peer-name{ font-size:26px;font-weight:700;color:#fff;margin-bottom:6px; }
+.call-status{ font-size:14px;color:rgba(255,255,255,.6); }
+.call-controls{
+  position:relative;z-index:2;display:flex;gap:20px;
+  margin-bottom:52px;align-items:center;
+}
+.call-btn{
+  width:58px;height:58px;border-radius:50%;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;transition:transform .15s,opacity .15s;
+  background:rgba(255,255,255,.15);color:#fff;
+}
+.call-btn:hover{ transform:scale(1.08);opacity:.9; }
+.call-btn.end{ background:#EF4444;width:68px;height:68px; }
+.call-btn.active-mute{ background:rgba(255,255,255,.35); }
+
+/* ── Incoming Call Modal ───────────────────────────────────── */
+#incoming-call-modal{
+  position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.6);
+  display:none;align-items:center;justify-content:center;
+  backdrop-filter:blur(6px);
+}
+#incoming-call-modal.active{ display:flex; }
+.incoming-card{
+  background:var(--card);border-radius:28px;padding:36px 28px;
+  text-align:center;width:300px;max-width:90vw;
+  box-shadow:0 24px 64px rgba(0,0,0,.5);
+  animation:slideUp .3s ease;
+}
+@keyframes slideUp{ from{transform:translateY(60px);opacity:0} to{transform:translateY(0);opacity:1} }
+.incoming-avatar{
+  width:80px;height:80px;border-radius:50%;margin:0 auto 14px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;font-weight:700;color:#fff;
+}
+.incoming-title{ font-size:13px;color:var(--txt3);margin-bottom:4px; }
+.incoming-name{ font-size:22px;font-weight:700;color:var(--txt);margin-bottom:20px; }
+.incoming-btns{ display:flex;gap:14px;justify-content:center; }
+.incoming-btn{
+  width:62px;height:62px;border-radius:50%;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:26px;
+  transition:transform .15s;
+}
+.incoming-btn:hover{ transform:scale(1.1); }
+.incoming-btn.accept{ background:#22C55E; }
+.incoming-btn.decline{ background:#EF4444; }
+
+/* ── Edit Profile Modal ────────────────────────────────────── */
+#edit-profile-modal{
+  position:fixed;inset:0;z-index:9990;background:rgba(0,0,0,.55);
+  display:none;align-items:center;justify-content:center;
+  backdrop-filter:blur(4px);
+}
+#edit-profile-modal.active{ display:flex; }
+.edit-profile-card{
+  background:var(--card);border-radius:24px;padding:28px 24px;
+  width:320px;max-width:92vw;box-shadow:0 20px 50px rgba(0,0,0,.4);
+}
+.edit-profile-card h3{ font-size:18px;font-weight:700;color:var(--txt);margin-bottom:20px; }
+.edit-field{ margin-bottom:16px; }
+.edit-field label{ font-size:12px;color:var(--txt3);font-weight:600;display:block;margin-bottom:6px; }
+.edit-field input{
+  width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid var(--nexo-lt);
+  background:var(--bg);color:var(--txt);font-size:15px;box-sizing:border-box;outline:none;
+}
+.edit-field input:focus{ border-color:var(--nexo-blue); }
+.edit-profile-btns{ display:flex;gap:10px;margin-top:20px; }
+.edit-profile-btns button{
+  flex:1;padding:13px;border-radius:12px;border:none;cursor:pointer;
+  font-size:15px;font-weight:600;transition:opacity .15s;
+}
+.edit-profile-btns button:hover{ opacity:.85; }
+.ep-cancel{ background:var(--nexo-lt);color:var(--txt); }
+.ep-save{ background:var(--nexo-blue);color:#fff; }
+
 </style>
+  <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.20.0.js">
+// ── Edit Profile ──────────────────────────────────────────────
+function openEditProfile(){
+  const u = window.state?.user;
+  if(!u) return;
+  document.getElementById('ep-name').value = u.name || '';
+  document.getElementById('edit-profile-modal').classList.add('active');
+}
+function closeEditProfile(){
+  document.getElementById('edit-profile-modal').classList.remove('active');
+}
+async function saveEditProfile(){
+  const name = document.getElementById('ep-name').value.trim();
+  if(!name){ showToast('Name cannot be empty'); return; }
+  if(typeof window._fbSaveProfile === 'function'){
+    await window._fbSaveProfile(name);
+  } else {
+    // Fallback: update local state only
+    window.state.user.name = name;
+    updateSettingsUI();
+  }
+  closeEditProfile();
+  showToast('✅ Profile updated!');
+}
+
+// ── Back Button / closeChat already exists, ensure it's robust ─
+// (closeChat() defined above — calling it again here is safe) ──
+</script>
 </head>
 <body>
 
@@ -583,10 +716,10 @@ svg{display:block}
       </div>
     </div>
     <div class="hdr-actions">
-      <button class="icon-btn" id="btn-voice" onclick="comingSoon('voice')">
+      <button class="icon-btn" id="btn-voice" onclick="startCall('voice')">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.61 19a19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.916-8.197A2 2 0 0 1 3.659 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
       </button>
-      <button class="icon-btn" id="btn-video" onclick="comingSoon('video')">
+      <button class="icon-btn" id="btn-video" onclick="startCall('video')">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
       </button>
     </div>
@@ -875,6 +1008,9 @@ function closeChat(){
   document.getElementById('pages').style.display='block';
   document.getElementById('bottom-nav').style.display='grid';
   window.state.activeContact=null;
+  // Clear chat area so stale messages don't flash on next open
+  const chatBg = document.getElementById('chat-bg');
+  if(chatBg) chatBg.innerHTML='';
 }
 
 function renderMessages(){
@@ -1550,7 +1686,286 @@ window.addContact = async function(foundUid, foundName, mobile, av){
   }
 };
 
-console.log('🔥 Firebase Auth + Firestore + Contacts connected!');
+
+// ════════════════════════════════════════════════════════════
+// AGORA VOICE + VIDEO CALLING  (App ID only mode — no token)
+// ════════════════════════════════════════════════════════════
+const AGORA_APP_ID = '0c53fa18b83146cb9052d5c9fc7164cc';
+
+let agoraClient   = null;
+let localAudioTrack  = null;
+let localVideoTrack  = null;
+let isMuted       = false;
+let isCamOff      = false;
+let currentCallDoc= null;   // Firestore doc ref for the active call
+let callUnsub     = null;   // Firestore listener unsubscriber for signaling
+let incomingCallData = null;// Stash for accept flow
+
+// ── avatarColor helper (re-use from main script) ─────────────
+function _agoraAvatarColor(name){
+  const cols=['#6366F1','#8B5CF6','#EC4899','#F59E0B','#10B981','#3B82F6','#EF4444','#14B8A6'];
+  let h=0; for(const c of name||'?') h=(h*31+c.charCodeAt(0))%cols.length;
+  return cols[h];
+}
+
+// ── Start a call (caller side) ───────────────────────────────
+window.startCall = async function(type){
+  const contact = window.state?.activeContact;
+  const me      = window.state?.user;
+  if(!contact || !me){ showToast('Open a chat first'); return; }
+
+  // Channel name = sorted UIDs (same canonical approach as chat room)
+  const channelName = [me.uid, contact.id].sort().join('_');
+
+  // Write call doc to Firestore — receiver's listener will pick this up
+  const callRef = doc(db, 'calls', channelName);
+  currentCallDoc = callRef;
+  await setDoc(callRef, {
+    channelName,
+    callType  : type,               // 'voice' | 'video'
+    callerUid : me.uid,
+    callerName: me.name,
+    receiverUid: contact.id,
+    status    : 'ringing',
+    createdAt : serverTimestamp()
+  });
+
+  // Show overlay
+  _showCallOverlay(contact.name, type, false);
+  document.getElementById('call-status-txt').textContent = 'Ringing…';
+
+  // Join Agora channel
+  await _joinAgoraChannel(channelName, type);
+
+  // Watch for receiver accepting / declining
+  callUnsub = onSnapshot(callRef, async snap => {
+    const d = snap.data();
+    if(!d) return;
+    if(d.status === 'accepted'){
+      document.getElementById('call-status-txt').textContent = type === 'video' ? '📹 Video call' : '🎙️ Voice call';
+    }
+    if(d.status === 'declined' || d.status === 'ended'){
+      await _cleanupCall();
+    }
+  });
+};
+
+// ── Incoming call listener (started once after login) ────────
+function _listenForIncomingCalls(myUid){
+  const callsRef = collection(db, 'calls');
+  onSnapshot(
+    query(callsRef, where('receiverUid','==', myUid), where('status','==','ringing')),
+    snap => {
+      snap.docChanges().forEach(ch => {
+        if(ch.type !== 'added') return;
+        const d = ch.doc.data();
+        // Don't show if we're already in a call
+        if(document.getElementById('call-overlay').classList.contains('active')) return;
+        incomingCallData = { ...d, docId: ch.doc.id };
+        _showIncomingModal(d);
+      });
+    }
+  );
+}
+
+function _showIncomingModal(d){
+  const av   = document.getElementById('incoming-avatar');
+  const col  = _agoraAvatarColor(d.callerName);
+  const init = (d.callerName||'?').trim().split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  av.style.background = col;
+  av.textContent = init;
+  document.getElementById('incoming-call-type').textContent =
+    d.callType === 'video' ? '📹 Incoming Video Call' : '🎙️ Incoming Voice Call';
+  document.getElementById('incoming-caller-name').textContent = d.callerName;
+  document.getElementById('incoming-call-modal').classList.add('active');
+}
+
+window.acceptCall = async function(){
+  if(!incomingCallData) return;
+  document.getElementById('incoming-call-modal').classList.remove('active');
+
+  const { channelName, callType, callerName, docId } = incomingCallData;
+  currentCallDoc = doc(db, 'calls', docId);
+
+  // Update status
+  await setDoc(currentCallDoc, { status: 'accepted' }, { merge: true });
+
+  _showCallOverlay(callerName, callType, false);
+  document.getElementById('call-status-txt').textContent =
+    callType === 'video' ? '📹 Video call' : '🎙️ Voice call';
+
+  await _joinAgoraChannel(channelName, callType);
+
+  // Watch for caller ending
+  callUnsub = onSnapshot(currentCallDoc, async snap => {
+    const d = snap.data();
+    if(d && (d.status === 'ended')) await _cleanupCall();
+  });
+};
+
+window.declineCall = async function(){
+  if(!incomingCallData) return;
+  document.getElementById('incoming-call-modal').classList.remove('active');
+  const callRef = doc(db, 'calls', incomingCallData.docId);
+  await setDoc(callRef, { status: 'declined' }, { merge: true });
+  incomingCallData = null;
+};
+
+// ── Agora join ───────────────────────────────────────────────
+async function _joinAgoraChannel(channelName, type){
+  agoraClient = AgoraRTC.createClient({ mode:'rtc', codec:'vp8' });
+
+  // Handle remote user publishing
+  agoraClient.on('user-published', async (user, mediaType) => {
+    await agoraClient.subscribe(user, mediaType);
+    if(mediaType === 'video'){
+      const remoteWrap = document.getElementById('remote-video-wrap');
+      document.getElementById('remote-avatar-placeholder').style.display = 'none';
+      user.videoTrack.play(remoteWrap);
+    }
+    if(mediaType === 'audio'){
+      user.audioTrack.play();
+    }
+  });
+
+  agoraClient.on('user-unpublished', (user, mediaType) => {
+    if(mediaType === 'video'){
+      document.getElementById('remote-avatar-placeholder').style.display = 'flex';
+    }
+  });
+
+  agoraClient.on('user-left', async () => {
+    await _cleanupCall();
+  });
+
+  await agoraClient.join(AGORA_APP_ID, channelName, null, null);
+
+  // Publish local tracks
+  localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+  await agoraClient.publish([localAudioTrack]);
+
+  if(type === 'video'){
+    localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+    const localWrap = document.getElementById('local-video-wrap');
+    localWrap.style.display = 'block';
+    localVideoTrack.play(localWrap);
+    await agoraClient.publish([localVideoTrack]);
+  }
+}
+
+// ── Controls ─────────────────────────────────────────────────
+window.toggleMute = function(){
+  if(!localAudioTrack) return;
+  isMuted = !isMuted;
+  localAudioTrack.setEnabled(!isMuted);
+  const btn = document.getElementById('btn-mute');
+  btn.textContent = isMuted ? '🔇' : '🎙️';
+  btn.classList.toggle('active-mute', isMuted);
+};
+
+window.toggleCamera = function(){
+  if(!localVideoTrack) return;
+  isCamOff = !isCamOff;
+  localVideoTrack.setEnabled(!isCamOff);
+  const btn = document.getElementById('btn-cam');
+  btn.textContent = isCamOff ? '🚫' : '📷';
+  btn.classList.toggle('active-mute', isCamOff);
+};
+
+window.endCall = async function(){
+  if(currentCallDoc){
+    await setDoc(currentCallDoc, { status:'ended' }, { merge:true });
+  }
+  await _cleanupCall();
+};
+
+async function _cleanupCall(){
+  if(callUnsub){ callUnsub(); callUnsub=null; }
+  if(localAudioTrack){ localAudioTrack.close(); localAudioTrack=null; }
+  if(localVideoTrack){ localVideoTrack.close(); localVideoTrack=null; }
+  if(agoraClient){ try{ await agoraClient.leave(); }catch(e){} agoraClient=null; }
+  currentCallDoc  = null;
+  incomingCallData= null;
+  isMuted  = false;
+  isCamOff = false;
+  document.getElementById('btn-mute').textContent = '🎙️';
+  document.getElementById('btn-cam').textContent  = '📷';
+  document.getElementById('call-overlay').classList.remove('active');
+  document.getElementById('incoming-call-modal').classList.remove('active');
+  document.getElementById('local-video-wrap').style.display = 'none';
+  document.getElementById('remote-avatar-placeholder').style.display = 'flex';
+}
+
+function _showCallOverlay(peerName, type, isVideo){
+  document.getElementById('call-peer-name').textContent = peerName;
+  document.getElementById('call-overlay').classList.add('active');
+  const camBtn = document.getElementById('btn-cam');
+  camBtn.style.visibility = (type === 'video') ? 'visible' : 'hidden';
+}
+
+// ── Save Profile helper (called by window.saveEditProfile) ───
+window._fbSaveProfile = async function(newName){
+  const uid = window.state?.user?.uid;
+  if(!uid) return;
+  await setDoc(doc(db,'users',uid), { name: newName }, { merge:true });
+  window.state.user.name = newName;
+  window.state.user.avatar = initials(newName);
+  updateSettingsUI();
+};
+
+console.log('🔥 Firebase Auth + Firestore + Contacts + Agora connected!');
 </script>
+
+<!-- ── Calling Overlay ───────────────────────────────────── -->
+<div id="call-overlay">
+  <div id="remote-video-wrap">
+    <div id="remote-avatar-placeholder"></div>
+  </div>
+  <div id="local-video-wrap"></div>
+  <div class="call-info">
+    <div class="call-peer-name" id="call-peer-name">—</div>
+    <div class="call-status" id="call-status-txt">Calling…</div>
+  </div>
+  <div class="call-controls">
+    <button class="call-btn" id="btn-mute" onclick="toggleMute()" title="Mute">
+      🎙️
+    </button>
+    <button class="call-btn end" onclick="endCall()" title="End Call">
+      📵
+    </button>
+    <button class="call-btn" id="btn-cam" onclick="toggleCamera()" title="Camera">
+      📷
+    </button>
+  </div>
+</div>
+
+<!-- ── Incoming Call Modal ───────────────────────────────── -->
+<div id="incoming-call-modal">
+  <div class="incoming-card">
+    <div class="incoming-avatar" id="incoming-avatar"></div>
+    <div class="incoming-title" id="incoming-call-type">Incoming Voice Call</div>
+    <div class="incoming-name" id="incoming-caller-name">…</div>
+    <div class="incoming-btns">
+      <button class="incoming-btn decline" onclick="declineCall()" title="Decline">📵</button>
+      <button class="incoming-btn accept"  onclick="acceptCall()"  title="Accept">📞</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Edit Profile Modal ────────────────────────────────── -->
+<div id="edit-profile-modal">
+  <div class="edit-profile-card">
+    <h3>✏️ Edit Profile</h3>
+    <div class="edit-field">
+      <label>Display Name</label>
+      <input type="text" id="ep-name" placeholder="Your name" />
+    </div>
+    <div class="edit-profile-btns">
+      <button class="ep-cancel" onclick="closeEditProfile()">Cancel</button>
+      <button class="ep-save"   onclick="saveEditProfile()">Save</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
