@@ -14,6 +14,68 @@
   <link rel="icon" type="image/png" sizes="192x192" href="/static/icon-192.png"/>
   <link rel="icon" type="image/png" sizes="512x512" href="/static/icon-512.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
+<script>
+// ── Service Worker registration (background push + cache) ────
+(function(){
+  if(!('serviceWorker' in navigator)) return;
+  // Inline Service Worker as a Blob URL so no external sw.js file is needed
+  const SW_CODE = `
+const CACHE = 'secret-v1';
+const PRECACHE = [];
+
+self.addEventListener('install', e => {
+  self.skipWaiting();
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(clients.claim());
+});
+
+// ── Push notification handler ─────────────────────────────────
+self.addEventListener('push', e => {
+  let data = { title: 'Secret', body: 'New message', icon: '/static/icon-192.png', tag: 'secret-msg' };
+  try { data = Object.assign(data, e.data.json()); } catch(err) {}
+  e.waitUntil(
+    self.registration.showNotification(data.title, {
+      body   : data.body,
+      icon   : data.icon || '/static/icon-192.png',
+      badge  : '/static/icon-192.png',
+      tag    : data.tag  || 'secret-msg',
+      renotify: true,
+      data   : data
+    })
+  );
+});
+
+// ── Notification click — focus or open the app ───────────────
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      for(const c of list){
+        if(c.url && 'focus' in c) return c.focus();
+      }
+      return clients.openWindow(self.location.origin);
+    })
+  );
+});
+
+// ── Background sync stub (for queued messages) ───────────────
+self.addEventListener('sync', e => {
+  if(e.tag === 'send-queued-messages'){
+    // app handles re-send on next open via Firestore offline cache
+  }
+});
+`;
+  const blob = new Blob([SW_CODE], { type: 'application/javascript' });
+  const swUrl = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swUrl, { scope: '/' })
+    .then(reg => {
+      console.log('[SW] registered, scope:', reg.scope);
+      window._swReg = reg;
+    })
+    .catch(err => console.warn('[SW] registration failed:', err));
+})();
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Sora:wght@400;600;700&display=swap" rel="stylesheet"/>
 <style>
 /* ── Reset & Tokens ─────────────────────────────────────── */
@@ -787,12 +849,19 @@ function _revealIfNeeded(){
 }
 window.hideSplash = hideSplash;
 
-// 1.5s guaranteed splash minimum; if Firebase takes longer, fallback at 4s
+// ── Splash timing strategy ───────────────────────────────────
+// Firebase Auth caches the session in IndexedDB and fires onAuthStateChanged
+// within ~300–600ms on revisit. We MUST wait for that before showing login,
+// otherwise a returning user briefly sees the login screen then gets auto-logged in.
+//
+// Strategy:
+//   • NO early 1.5s hide — onAuthStateChanged always hides the splash itself.
+//   • Safety net at 8s covers network-timeout / very slow cold starts.
+//   • If the user was NEVER logged in, onAuthStateChanged fires with null
+//     almost instantly (~100ms) so the splash still disappears quickly.
 window._splashFallback = setTimeout(function(){
   if(!_splashGone) hideSplash();
-}, 4000);
-// Always hide after 1.5s (Firebase onAuthStateChanged either fired or will fire soon)
-setTimeout(function(){ hideSplash(); }, 1500);
+}, 8000);
 
 // ── Friend Profile ────────────────────────────────────────────
 function openFriendProfile(){
@@ -1967,8 +2036,8 @@ window.appendMessage  = appendMessage;
 // ── Contact Context Menu ────────────────────────────────────
 let _ctxContactRow = null;
 // Track muted contacts (persisted in localStorage-like via a JS Map)
-const _mutedContacts = new Set(JSON.parse(sessionStorage.getItem('_muted')||'[]'));
-function _saveMuted(){ try{sessionStorage.setItem('_muted',JSON.stringify([..._mutedContacts]));}catch(e){} }
+const _mutedContacts = new Set(JSON.parse(localStorage.getItem('_muted')||'[]'));
+function _saveMuted(){ try{localStorage.setItem('_muted',JSON.stringify([..._mutedContacts]));}catch(e){} }
 
 function openContactCtxMenu(row){
   _ctxContactRow = row;
@@ -2388,7 +2457,8 @@ import { getFirestore, collection, addDoc, onSnapshot,
          getDocs, where, increment, deleteDoc, writeBatch, Timestamp }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getAuth, createUserWithEmailAndPassword,
-         signInWithEmailAndPassword, signOut, onAuthStateChanged }
+         signInWithEmailAndPassword, signOut, onAuthStateChanged,
+         browserLocalPersistence, setPersistence }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
@@ -2475,6 +2545,13 @@ const fbApp = initializeApp(firebaseConfig);
 const db    = getFirestore(fbApp);
 const auth  = getAuth(fbApp);
 const storage = getStorage(fbApp);
+
+// ── Explicit LOCAL persistence ────────────────────────────────
+// Firebase Auth defaults to LOCAL on web, but calling this explicitly
+// guarantees the token is saved in IndexedDB so it survives tab/app close.
+setPersistence(auth, browserLocalPersistence).catch(e => {
+  console.warn('setPersistence failed (non-critical):', e);
+});
 
 // ── Firebase Media Upload ────────────────────────────────────
 window._fbUploadMedia = async function(file, type){
@@ -2624,8 +2701,10 @@ onAuthStateChanged(auth, (user) => {
         window.hideSplash(); // never get stuck on splash on error
       }
     }, 0);
+  } else {
+    // No cached session — reveal login immediately (no waiting)
+    window.hideSplash();
   }
-  // If user is null, the 1.5s timer in hideSplash handles showing login
 });
 
 // ── SIGN UP ──────────────────────────────────────────────────
@@ -3093,7 +3172,96 @@ window.bootApp = async function(){
   if(myUid){
     _listenForIncomingCalls(myUid);
     _listenForFriendRequests(myUid);
+    // Request push permission and start background notification listener
+    _initPushNotifications(myUid);
   }
+};
+
+// ── Push / Background notification setup ─────────────────────
+async function _initPushNotifications(uid){
+  try{
+    // 1. Ask permission (only prompts user once; subsequent calls are instant)
+    if('Notification' in window && Notification.permission === 'default'){
+      const perm = await Notification.requestPermission();
+      console.log('[Push] permission:', perm);
+    }
+    // 2. Listen for new messages in ALL contacts and show a notification
+    //    when the app is in the background / minimised.
+    //    Firestore's onSnapshot continues firing even when the page is hidden
+    //    because the JS thread is still alive. The SW handles when it's truly closed.
+    const contacts = window.state?.contacts || [];
+    for(const c of contacts.slice(0, 30)){
+      _subscribeContactNotifications(uid, c);
+    }
+    // 3. Also subscribe to new contacts added later
+    window._notifSubscribed = window._notifSubscribed || new Set();
+  } catch(e){
+    console.warn('[Push] init failed:', e);
+  }
+}
+window._notifSubscribed = new Set();
+
+function _subscribeContactNotifications(myUid, contact){
+  if(!contact?.id) return;
+  const key = contact.id;
+  if(window._notifSubscribed.has(key)) return;
+  window._notifSubscribed.add(key);
+
+  const ids = [myUid, contact.id].sort();
+  const chatPath = contact.isGroup
+    ? ['groups', contact.id, 'messages']
+    : ['chats', `room_${ids[0]}_${ids[1]}`, 'messages'];
+
+  try{
+    // Listen only to messages newer than "now" so we don't re-notify history
+    const startTs = new Date();
+    const q = query(
+      collection(db, ...chatPath),
+      orderBy('createdAt'),
+      where('createdAt', '>=', Timestamp.fromDate(startTs))
+    );
+    onSnapshot(q, snap => {
+      snap.docChanges().forEach(ch => {
+        if(ch.type !== 'added') return;
+        const d = ch.doc.data();
+        if(d.sender === myUid) return; // don't notify your own messages
+        // Only show notification when tab is hidden/backgrounded
+        if(document.visibilityState === 'visible') return;
+        const senderName = d.senderName || contact.name || 'Secret';
+        const body = d.mediaType === 'image' ? 'Sent a photo'
+                   : d.mediaType === 'voice' ? 'Sent a voice note'
+                   : d.text || 'New message';
+        _showPushNotification(senderName, body, contact);
+      });
+    });
+  } catch(e){ /* non-critical */ }
+}
+
+function _showPushNotification(title, body, contact){
+  // Prefer SW notification (works even if page is frozen)
+  if(window._swReg && Notification.permission === 'granted'){
+    window._swReg.showNotification(title, {
+      body,
+      icon  : '/static/icon-192.png',
+      badge : '/static/icon-192.png',
+      tag   : 'msg-' + (contact?.id || 'chat'),
+      renotify: true,
+      data  : { contactId: contact?.id }
+    });
+  } else if(Notification.permission === 'granted'){
+    // Fallback: plain Notification API
+    const n = new Notification(title, { body, icon: '/static/icon-192.png', tag: 'msg-' + (contact?.id||'chat') });
+    n.onclick = () => { window.focus(); if(contact?.id) window.openChat?.(contact.id); n.close(); };
+  }
+}
+
+// Re-subscribe when new contacts are loaded
+const _origRenderContacts = window.renderContacts;
+window.renderContacts = function(contacts){
+  _origRenderContacts && _origRenderContacts(contacts);
+  const myUid = window.state?.user?.uid;
+  if(!myUid) return;
+  (contacts||[]).forEach(c => _subscribeContactNotifications(myUid, c));
 };
 
 // ── Search user by mobile & add as contact ───────────────────
@@ -4029,6 +4197,15 @@ window.addParticipantToCall = async function(newUid){
 
 // Expose loadCallHistory globally so switchTab('calls') can call it
 window.loadCallHistory = loadCallHistory;
+
+// ── Re-subscribe notifications after tab regains focus ────────
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState !== 'visible') return;
+  const myUid = window.state?.user?.uid;
+  const contacts = window.state?.contacts || [];
+  if(!myUid) return;
+  contacts.forEach(c => _subscribeContactNotifications(myUid, c));
+});
 </script>
 
 <!-- ── Calling Overlay — WhatsApp-style full-screen ────────── -->
