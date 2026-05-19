@@ -1,173 +1,92 @@
-// Secret App — Service Worker (Render deployment)
-// Supports: offline caching + Web Push Notifications (call & message events)
+/* ════════════════════════════════════════════════════════════════
+   sw.js — Secret App Service Worker
+   • Must be served from the ROOT of your domain (same origin as the page)
+   • e.g. https://yourdomain.com/sw.js
+   ════════════════════════════════════════════════════════════════ */
 
-const CACHE = 'secret-v2';
-const ASSETS = [
-  '/',
-  '/manifest.json',
-  '/static/icon-192.png',
-  '/static/icon-512.png',
-  '/static/apple-touch-icon.png'
-];
+const CACHE = 'secret-v1';
 
-/* ── Install: pre-cache shell assets ─────────────────────────── */
+/* ── Install: skip waiting so new SW activates immediately ────── */
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
   self.skipWaiting();
 });
 
-/* ── Activate: purge stale caches ────────────────────────────── */
+/* ── Activate: claim all open clients immediately ─────────────── */
 self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    )
-  );
-  self.clients.claim();
+  e.waitUntil(clients.claim());
 });
 
-/* ── Fetch: network-first, fall back to cache ────────────────── */
-self.addEventListener('fetch', e => {
-  e.respondWith(
-    fetch(e.request).catch(() => caches.match(e.request))
-  );
-});
-
-/* ═══════════════════════════════════════════════════════════════
-   PUSH NOTIFICATIONS
-   ═══════════════════════════════════════════════════════════════
-   Your server sends a JSON payload like:
-   {
-     "type"      : "call" | "message",
-     "title"     : "Incoming Voice Call",
-     "body"      : "Sarfaraj is calling…",
-     "icon"      : "/static/icon-192.png",
-     "badge"     : "/static/icon-192.png",
-     "tag"       : "call-<uid>",
-     "callId"    : "<Firestore doc id>",
-     "callerName": "Sarfaraj",
-     "url"       : "/"
-   }
-   ═══════════════════════════════════════════════════════════════ */
-
+/* ── Push: show notification when a push arrives ──────────────── */
 self.addEventListener('push', e => {
-  if (!e.data) return;
-
-  let payload;
-  try {
-    payload = e.data.json();
-  } catch {
-    payload = {
-      type : 'message',
-      title: 'Secret',
-      body : e.data.text(),
-      icon : '/static/icon-192.png'
-    };
-  }
-
-  const {
-    type       = 'message',
-    title      = 'Secret',
-    body       = 'You have a new notification',
-    icon       = '/static/icon-192.png',
-    badge      = '/static/icon-192.png',
-    tag        = 'secret-notification',
-    callId     = '',
-    url        = '/'
-  } = payload;
-
-  // Build actions based on event type
-  // "call"    → Answer / Decline   (WhatsApp-style lock-screen call)
-  // "message" → Open App
-  const actions = type === 'call'
-    ? [
-        { action: 'answer',  title: '✅ Answer'  },
-        { action: 'decline', title: '❌ Decline' }
-      ]
-    : [
-        { action: 'open', title: '💬 Open App' }
-      ];
-
-  const options = {
-    body,
-    icon,
-    badge,
-    tag,
-    renotify : true,
-    requireInteraction: type === 'call',
-    vibrate  : type === 'call'
-      ? [300, 200, 300, 200, 300]
-      : [200, 100, 200],
-    actions,
-    data: { url, callId, type }
+  // Default payload — overridden by whatever the server sends
+  let data = {
+    title : 'Secret',
+    body  : 'New message',
+    icon  : '/static/icon-192.png',
+    badge : '/static/icon-192.png',
+    tag   : 'secret-msg',
+    type  : 'message'   // 'message' | 'call'
   };
 
-  e.waitUntil(self.registration.showNotification(title, options));
+  // Try to parse the server-sent JSON payload
+  if (e.data) {
+    try { Object.assign(data, e.data.json()); } catch (_) {}
+  }
+
+  const options = {
+    body    : data.body,
+    icon    : data.icon  || '/static/icon-192.png',
+    badge   : data.badge || '/static/icon-192.png',
+    tag     : data.tag   || 'secret-msg',
+    renotify: true,
+    data    : data,
+    // Action buttons shown in the notification tray
+    actions : data.type === 'call'
+      ? [
+          { action: 'answer',  title: '✅ Answer' },
+          { action: 'decline', title: '❌ Decline' }
+        ]
+      : [
+          { action: 'open', title: '💬 Open' }
+        ]
+  };
+
+  e.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
 });
 
-/* ── Notification Click / Action ─────────────────────────────── */
+/* ── Notification click: focus or open the app ─────────────────── */
 self.addEventListener('notificationclick', e => {
-  const notification = e.notification;
-  const action       = e.action;
-  const { url, callId, type } = notification.data || {};
+  e.notification.close();
 
-  notification.close();
-
-  // Decline: dismiss only
-  if (action === 'decline') return;
+  const action = e.action;           // 'answer' | 'decline' | 'open' | ''
+  const data   = e.notification.data || {};
 
   e.waitUntil(
-    clients
-      .matchAll({ type: 'window', includeUncontrolled: true })
-      .then(windowClients => {
-        // Focus an existing app window
-        for (const client of windowClients) {
-          if (client.url.startsWith(self.location.origin) && 'focus' in client) {
-            client.focus();
-            client.postMessage({
-              type  : 'NOTIFICATION_ACTION',
-              action: action || 'open',
-              callId
-            });
-            return;
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      // Try to find an already-open window and focus it
+      for (const c of list) {
+        if (c.url && 'focus' in c) {
+          c.focus();
+          // Forward the action to the page so it can handle UI (e.g. show call modal)
+          if (action && action !== 'decline') {
+            c.postMessage({ type: 'NOTIFICATION_ACTION', action, callId: data.callId });
           }
+          return;
         }
-
-        // No existing window → open a new one
-        if (clients.openWindow) {
-          const target = callId
-            ? `${url || '/'}#call=${callId}&action=${action || 'open'}`
-            : (url || '/');
-          return clients.openWindow(target).then(newClient => {
-            if (newClient) {
-              setTimeout(() => {
-                newClient.postMessage({
-                  type  : 'NOTIFICATION_ACTION',
-                  action: action || 'open',
-                  callId
-                });
-              }, 1500);
-            }
-          });
-        }
-      })
+      }
+      // No open window — open a new one (decline action: no need to open)
+      if (action !== 'decline') {
+        return clients.openWindow(self.location.origin);
+      }
+    })
   );
 });
 
-/* ── Push subscription change (key rotation) ─────────────────── */
-self.addEventListener('pushsubscriptionchange', e => {
-  e.waitUntil(
-    self.registration.pushManager
-      .subscribe({
-        userVisibleOnly   : true,
-        applicationServerKey: e.oldSubscription?.options?.applicationServerKey
-      })
-      .then(subscription => {
-        return fetch('/api/push/subscribe', {
-          method : 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body   : JSON.stringify(subscription)
-        });
-      })
-  );
+/* ── Background sync stub ──────────────────────────────────────── */
+self.addEventListener('sync', e => {
+  if (e.tag === 'send-queued-messages') {
+    // Firestore offline cache handles re-send on next app open
+  }
 });
