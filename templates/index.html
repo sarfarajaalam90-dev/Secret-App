@@ -982,13 +982,6 @@ window.openCtxMenu = openCtxMenu;
   <!-- ── Top Bar (main app) ── -->
   <div id="top-bar" style="display:none">
     <span class="app-logo" style="letter-spacing:2.5px;font-size:20px;font-weight:700;color:var(--nexo)">SECRET</span>
-    <div class="spacer"></div>
-    <button class="icon-btn" title="Search">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    </button>
-    <button class="icon-btn" title="More">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="19" r="1.5" fill="currentColor"/></svg>
-    </button>
   </div>
 
 
@@ -1041,22 +1034,37 @@ window.openCtxMenu = openCtxMenu;
         <div class="settings-label">Account</div>
         <div class="settings-row" onclick="openEditProfile()"><div class="settings-icon" style="background:rgba(59,130,246,.12)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="settings-row-info"><div class="settings-row-name">Edit Profile</div><div class="settings-row-sub">Edit name, photo, bio</div></div><svg class="settings-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
         <div class="divider"></div>
-        <div class="settings-row" onclick="togglePrivacyPanel()" id="privacy-row">
+        <div class="settings-row" onclick="togglePrivacyPanel()" id="privacy-row" style="cursor:pointer;">
           <div class="settings-icon" style="background:rgba(22,163,74,.1)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-          <div class="settings-row-info"><div class="settings-row-name">Privacy &amp; Security</div><div class="settings-row-sub">Auto-delete, blocked contacts</div></div>
-          <svg id="privacy-chevron" style="transition:transform .2s;flex-shrink:0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+          <div class="settings-row-info"><div class="settings-row-name">Privacy &amp; Security</div><div class="settings-row-sub" id="privacy-sub">Auto-delete, private account</div></div>
+          <svg id="privacy-chevron" style="transition:transform .25s;flex-shrink:0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
         </div>
-        <div id="privacy-panel" style="display:none;background:var(--card);border-top:1px solid var(--border);padding:0 16px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border);">
-            <div>
-              <div style="font-size:14px;font-weight:600;color:var(--txt)">Auto-Delete Messages</div>
-              <div style="font-size:12px;color:var(--txt3);margin-top:2px">Messages delete automatically after 1 hour</div>
+
+        <!-- Inline expanded privacy panel -->
+        <div id="privacy-panel" style="display:none;margin:0 0 4px 0;background:var(--surface);border-radius:0 0 12px 12px;border:1px solid var(--border);border-top:none;overflow:hidden;">
+
+          <!-- Auto-Delete Messages -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);">
+            <div style="flex:1;min-width:0;padding-right:12px;">
+              <div style="font-size:14px;font-weight:600;color:var(--txt);">Auto-Delete Messages</div>
+              <div style="font-size:12px;color:var(--txt3);margin-top:2px;" id="auto-delete-status">Messages auto-delete after 1 hour</div>
             </div>
             <div id="auto-delete-toggle" onclick="toggleAutoDelete()" style="width:46px;height:26px;border-radius:13px;background:var(--nexo);cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;">
               <div id="auto-delete-knob" style="width:20px;height:20px;border-radius:50%;background:#fff;position:absolute;top:3px;left:23px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.3);"></div>
             </div>
           </div>
-          <div id="auto-delete-status" style="font-size:11px;color:var(--nexo);padding:8px 0 10px;font-weight:500;">✓ Auto-delete is ON — messages expire after 1 hour</div>
+
+          <!-- Private Account -->
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;">
+            <div style="flex:1;min-width:0;padding-right:12px;">
+              <div style="font-size:14px;font-weight:600;color:var(--txt);">Private Account</div>
+              <div style="font-size:12px;color:var(--txt3);margin-top:2px;" id="private-account-status">Anyone can message you directly</div>
+            </div>
+            <div id="private-account-toggle" onclick="togglePrivateAccount()" style="width:46px;height:26px;border-radius:13px;background:var(--txt3);cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;">
+              <div id="private-account-knob" style="width:20px;height:20px;border-radius:50%;background:#fff;position:absolute;top:3px;left:3px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.3);"></div>
+            </div>
+          </div>
+
         </div>
       </div>
       <div class="divider"></div>
@@ -1092,18 +1100,37 @@ window.openCtxMenu = openCtxMenu;
       </div>
     </div>
     <div class="hdr-actions">
-      <button class="icon-btn" id="btn-hdr-mute" onclick="toggleChatMute()" title="Mute/Unmute notifications">
-        <svg id="hdr-mute-off-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
-        <svg id="hdr-mute-on-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
-      </button>
-      <button class="icon-btn" id="btn-voice" onclick="startCall('voice')">
+      <button class="icon-btn" id="btn-voice" onclick="startCall('voice')" title="Voice call">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.61 19a19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.916-8.197A2 2 0 0 1 3.659 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
       </button>
-      <button class="icon-btn" id="btn-video" onclick="startCall('video')">
+      <button class="icon-btn" id="btn-video" onclick="startCall('video')" title="Video call">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+      </button>
+      <!-- 3-dot chat menu -->
+      <button class="icon-btn" id="btn-chat-more" onclick="toggleChatMoreMenu()" title="More">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="19" r="1.5" fill="currentColor"/></svg>
       </button>
     </div>
     <div class="coming-soon" id="coming-soon-tip">Coming Soon 🚀</div>
+  </div>
+
+  <!-- ── Chat 3-dot dropdown menu ── -->
+  <div id="chat-more-menu" style="
+    display:none;position:absolute;top:56px;right:8px;z-index:100;
+    background:var(--card);border:1px solid var(--border);border-radius:14px;
+    min-width:190px;box-shadow:0 8px 32px rgba(0,0,0,.35);overflow:hidden;">
+    <div class="ctx-item" id="chat-more-mute" onclick="chatMenuMute()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+      <span id="chat-menu-mute-label">Mute Notifications</span>
+    </div>
+    <div class="ctx-item" id="chat-more-group" onclick="chatMenuGroup()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Add to Group
+    </div>
+    <div class="ctx-item" style="color:#EF4444" onclick="chatMenuBlock()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+      Block Contact
+    </div>
   </div>
     <div id="chat-bg"></div>
     <div id="voice-rec-bar"><div id="voice-rec-dot"></div><span id="voice-rec-time">0:00</span><span id="voice-rec-cancel" onclick="cancelVoiceRecording()">Cancel</span></div>
@@ -1258,6 +1285,10 @@ window.openCtxMenu = openCtxMenu;
   <div class="contact-ctx-item" onclick="contactCtxCreateGroup()">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
     Create Group
+  </div>
+  <div class="contact-ctx-item danger" onclick="contactCtxBlock()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+    Block Contact
   </div>
   <div class="contact-ctx-item danger" onclick="contactCtxDelete()">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
@@ -1778,36 +1809,142 @@ function togglePrivacyPanel(){
   const panel   = document.getElementById('privacy-panel');
   const chevron = document.getElementById('privacy-chevron');
   const open    = panel.style.display === 'block';
-  panel.style.display  = open ? 'none' : 'block';
+  panel.style.display     = open ? 'none' : 'block';
   chevron.style.transform = open ? '' : 'rotate(90deg)';
 }
 
 function _renderAutoDeleteUI(){
-  const on     = window.state.autoDeleteMessages !== false; // default ON
+  const on     = window.state.autoDeleteMessages !== false;
   const toggle = document.getElementById('auto-delete-toggle');
   const knob   = document.getElementById('auto-delete-knob');
   const status = document.getElementById('auto-delete-status');
   if(!toggle) return;
   toggle.style.background = on ? 'var(--nexo)' : 'var(--txt3)';
   knob.style.left         = on ? '23px' : '3px';
-  if(status){
-    status.textContent  = on
-      ? '✓ Auto-delete is ON — messages expire after 1 hour'
-      : '✗ Auto-delete is OFF — messages are kept forever';
-    status.style.color  = on ? 'var(--nexo)' : 'var(--txt3)';
-  }
+  if(status) status.textContent = on
+    ? 'Messages auto-delete after 1 hour'
+    : 'Messages are kept forever';
 }
 
 function toggleAutoDelete(){
-  const current = window.state.autoDeleteMessages !== false;
-  window.state.autoDeleteMessages = !current;
+  const on = window.state.autoDeleteMessages !== false;
+  window.state.autoDeleteMessages = !on;
   _renderAutoDeleteUI();
-  if(typeof window._fbSaveAutoDeleteSetting === 'function'){
-    window._fbSaveAutoDeleteSetting(!current);
+  if(typeof window._fbSaveAutoDeleteSetting === 'function')
+    window._fbSaveAutoDeleteSetting(!on);
+  showToast(!on ? '🔥 Auto-delete ON — messages expire in 1 hour' : '💾 Auto-delete OFF');
+}
+
+function _renderPrivateAccountUI(){
+  const on     = window.state.privateAccount === true;
+  const toggle = document.getElementById('private-account-toggle');
+  const knob   = document.getElementById('private-account-knob');
+  const status = document.getElementById('private-account-status');
+  if(!toggle) return;
+  toggle.style.background = on ? 'var(--nexo)' : 'var(--txt3)';
+  knob.style.left         = on ? '23px' : '3px';
+  if(status) status.textContent = on
+    ? 'New contacts need your approval to message you'
+    : 'Anyone can message you directly';
+}
+
+function togglePrivateAccount(){
+  const on = window.state.privateAccount === true;
+  window.state.privateAccount = !on;
+  _renderPrivateAccountUI();
+  // Save to Firestore userSettings
+  if(typeof window._fbSaveUserSetting === 'function')
+    window._fbSaveUserSetting({ privateAccount: !on });
+  showToast(!on ? '🔒 Account is now Private' : '🔓 Account is now Public');
+}
+
+// ── Chat 3-dot more menu ──────────────────────────────────────
+function toggleChatMoreMenu(){
+  const menu = document.getElementById('chat-more-menu');
+  const open = menu.style.display === 'block';
+  menu.style.display = open ? 'none' : 'block';
+  // Update mute label
+  const contact = window.state?.activeContact;
+  const isMuted = contact && window._mutedContacts?.has(contact.id);
+  const lbl = document.getElementById('chat-menu-mute-label');
+  if(lbl) lbl.textContent = isMuted ? 'Unmute Notifications' : 'Mute Notifications';
+  // Hide group option for group chats
+  const grpItem = document.getElementById('chat-more-group');
+  if(grpItem) grpItem.style.display = contact?.isGroup ? 'none' : 'flex';
+  if(!open) setTimeout(()=>document.addEventListener('click',_closeChatMoreMenu,{once:true}),0);
+}
+function _closeChatMoreMenu(){ document.getElementById('chat-more-menu').style.display='none'; }
+
+function chatMenuMute(){
+  _closeChatMoreMenu();
+  if(typeof window.toggleChatMute === 'function') window.toggleChatMute();
+  else {
+    const contact = window.state?.activeContact;
+    if(!contact) return;
+    if(window._mutedContacts?.has(contact.id)){
+      window._mutedContacts.delete(contact.id);
+      showToast('🔔 Unmuted');
+    } else {
+      window._mutedContacts = window._mutedContacts || new Set();
+      window._mutedContacts.add(contact.id);
+      showToast('🔕 Muted');
+    }
   }
 }
-window.togglePrivacyPanel = togglePrivacyPanel;
-window.toggleAutoDelete   = toggleAutoDelete;
+
+function chatMenuGroup(){
+  _closeChatMoreMenu();
+  if(typeof window.contactCtxCreateGroup === 'function'){
+    // Pre-select active contact
+    const contact = window.state?.activeContact;
+    if(contact && window._ctxContactRow === null){
+      // Simulate from active contact
+      window._preselectedGroupContact = contact;
+    }
+    window.contactCtxCreateGroup();
+  }
+}
+
+function chatMenuBlock(){
+  _closeChatMoreMenu();
+  const contact = window.state?.activeContact;
+  if(!contact) return;
+  if(!confirm('Block ' + contact.name + '? They won\'t be able to message you.')) return;
+  _blockContact(contact.id, contact.name);
+}
+
+// ── Block contact (shared by context menu and chat menu) ─────
+function contactCtxBlock(){
+  if(!window._ctxContactRow) return;
+  const cid   = window._ctxContactRow.dataset.cid;
+  const cname = window._ctxContactRow.dataset.cname;
+  if(typeof window._closeContactCtx === 'function') window._closeContactCtx();
+  if(!confirm('Block ' + cname + '? They won\'t be able to message you.')) return;
+  _blockContact(cid, cname);
+}
+
+function _blockContact(cid, cname){
+  window._blockedContacts = window._blockedContacts || new Set();
+  window._blockedContacts.add(cid);
+  // Save to Firestore
+  if(typeof window._fbSaveUserSetting === 'function')
+    window._fbSaveUserSetting({ blockedUsers: [...window._blockedContacts] });
+  showToast(cname + ' blocked');
+  // Close chat if open
+  if(window.state?.activeContact?.id === cid && typeof window.closeChat === 'function')
+    window.closeChat();
+}
+
+window.togglePrivacyPanel    = togglePrivacyPanel;
+window.toggleAutoDelete      = toggleAutoDelete;
+window.togglePrivateAccount  = togglePrivateAccount;
+window._renderAutoDeleteUI   = _renderAutoDeleteUI;
+window._renderPrivateAccountUI = _renderPrivateAccountUI;
+window.toggleChatMoreMenu    = toggleChatMoreMenu;
+window.chatMenuMute          = chatMenuMute;
+window.chatMenuGroup         = chatMenuGroup;
+window.chatMenuBlock         = chatMenuBlock;
+window.contactCtxBlock       = contactCtxBlock;
 window._renderAutoDeleteUI = _renderAutoDeleteUI;
 window.renderContacts = renderContacts;
 window.avatarColor    = avatarColor;
@@ -2595,6 +2732,12 @@ function startListener(contactId){
       if(!area) return;
       if(area.querySelector(`[data-fbid="${msg.id}"]`)) return;
       if(window.state?.activeContact?.id !== contactId) return;
+
+      // Skip expired messages — don't render them, they'll be deleted by _deleteExpiredMessages
+      if(msg.expiresAt){
+        const expMs = msg.expiresAt.toMillis ? msg.expiresAt.toMillis() : (msg.expiresAt.seconds*1000);
+        if(expMs < Date.now()) return;
+      }
       const contact = window.state.activeContact;
       const div = document.createElement('div');
       div.className = `bubble-row ${msg.sender}`;
@@ -2717,38 +2860,50 @@ window._fbSaveAutoDeleteSetting = function(enabled){
     .catch(e => console.warn('Save autoDelete setting failed:', e));
 };
 
-async function _loadAutoDeleteSetting(){
+window._fbSaveUserSetting = function(data){
+  const uid = window.state?.user?.uid;
+  if(!uid) return;
+  setDoc(doc(db,'userSettings',uid), data, { merge: true })
+    .catch(e => console.warn('Save userSetting failed:', e));
+};
+
+async function _loadUserSettings(){
   const uid = window.state?.user?.uid;
   if(!uid) return;
   try{
     const snap = await getDoc(doc(db,'userSettings',uid));
-    // Default is ON if doc doesn't exist yet
-    window.state.autoDeleteMessages = snap.exists()
-      ? (snap.data().autoDeleteMessages !== false)
-      : true;
+    const data = snap.exists() ? snap.data() : {};
+    // Auto-delete: default ON
+    window.state.autoDeleteMessages = data.autoDeleteMessages !== false;
+    // Private account: default OFF
+    window.state.privateAccount = data.privateAccount === true;
+    // Blocked users
+    window._blockedContacts = new Set(data.blockedUsers || []);
   } catch(e){
-    window.state.autoDeleteMessages = true; // default ON on error
+    window.state.autoDeleteMessages = true;
+    window.state.privateAccount = false;
   }
   if(typeof window._renderAutoDeleteUI === 'function') window._renderAutoDeleteUI();
+  if(typeof window._renderPrivateAccountUI === 'function') window._renderPrivateAccountUI();
 }
 
-// ── Delete expired messages from a chat room ──────────────────
 async function _deleteExpiredMessages(chatPath){
   try{
-    const now = Date.now();
-    const q   = query(collection(db, ...chatPath.split('/')), orderBy('createdAt'));
+    const now  = Date.now();
+    const parts = chatPath.split('/');
+    const q    = query(collection(db, ...parts));
     const snap = await getDocs(q);
     const expired = snap.docs.filter(d => {
       const exp = d.data().expiresAt;
       if(!exp) return false;
-      const expMs = exp.toMillis ? exp.toMillis() : exp.seconds * 1000;
-      return expMs < now;
+      const ms = exp.toMillis ? exp.toMillis() : (exp.seconds * 1000);
+      return ms < now;
     });
-    if(expired.length === 0) return;
+    if(!expired.length) return;
     const batch = writeBatch(db);
     expired.forEach(d => batch.delete(d.ref));
     await batch.commit();
-    console.log(`[AutoDelete] Deleted ${expired.length} expired message(s) from ${chatPath}`);
+    console.log(`[AutoDelete] ✅ Deleted ${expired.length} expired message(s)`);
   } catch(e){
     console.warn('[AutoDelete] cleanup failed:', e);
   }
@@ -2759,7 +2914,7 @@ const _origOpen = window.openChat;
 window.openChat = async function(contactId){
   await _origOpen(contactId);
   startListener(contactId);
-  // Clean up expired messages every time a chat is opened
+  // Delete expired messages — activeContact is now set by _origOpen
   const contact = window.state?.activeContact;
   if(contact){
     const chatPath = contact.isGroup
@@ -2861,9 +3016,21 @@ function loadFirestoreContacts(){
   if(!uid) return;
   if(_contactsUnsub){ _contactsUnsub(); _contactsUnsub = null; }
   _contactsUnsub = onSnapshot(collection(db,'users',uid,'contacts'), snap => {
+    const now = Date.now();
     const contacts = [];
-    snap.forEach(d => { contacts.push({...d.data(), id: d.id}); });
-    // Sort: unread first, then by last message time desc, then name
+    snap.forEach(d => {
+      const data = d.data();
+      // Derive real online status from lastSeen timestamp
+      // A user is "online" only if they were active within the last 2 minutes
+      let status = 'offline';
+      if(data.lastSeen){
+        const lastSeenMs = data.lastSeen.toMillis ? data.lastSeen.toMillis() : (data.lastSeen.seconds*1000);
+        const diffMin = (now - lastSeenMs) / 60000;
+        if(diffMin < 2) status = 'online';
+        else if(diffMin < 10) status = 'away';
+      }
+      contacts.push({ ...data, id: d.id, status });
+    });
     contacts.sort((a,b) => {
       if((b.unread||0) !== (a.unread||0)) return (b.unread||0) - (a.unread||0);
       const ta = a.updatedAt?.seconds || a.addedAt?.seconds || 0;
@@ -2873,26 +3040,58 @@ function loadFirestoreContacts(){
     });
     window.state.contacts = contacts;
     renderContacts(contacts);
-    // Update unread badge count on nav
     const totalUnread = contacts.reduce((s,c)=>s+(c.unread||0),0);
     const badge = document.getElementById('nav-badge');
     if(badge){ badge.textContent = totalUnread > 0 ? (totalUnread > 99 ? '99+' : totalUnread) : ''; badge.style.display = totalUnread > 0 ? 'flex' : 'none'; }
   }, e => console.warn('loadFirestoreContacts error:', e));
 }
 
-// Patch bootApp to load Firestore contacts
+// Write YOUR own lastSeen on login so others can see your status
+function _writeMyPresence(){
+  const uid = window.state?.user?.uid;
+  if(!uid) return;
+  const userRef = doc(db,'users',uid);
+  // Update lastSeen now
+  setDoc(userRef, { lastSeen: serverTimestamp() }, { merge: true }).catch(()=>{});
+  // Update lastSeen every 60 seconds while app is open
+  setInterval(()=>{
+    setDoc(userRef, { lastSeen: serverTimestamp() }, { merge: true }).catch(()=>{});
+  }, 60000);
+  // Update on tab visibility change
+  document.addEventListener('visibilitychange', ()=>{
+    if(!document.hidden){
+      setDoc(userRef, { lastSeen: serverTimestamp() }, { merge: true }).catch(()=>{});
+    }
+  });
+}
+
+// Patch bootApp to load Firestore contacts + settings + presence
 const _origBoot = window.bootApp;
 window.bootApp = async function(){
   await _origBoot();
   loadFirestoreContacts();
-  // Load auto-delete preference from Firestore
-  await _loadAutoDeleteSetting();
-  // Expose render helper so the main script toggle UI can call it
-  window._renderAutoDeleteUI = window._renderAutoDeleteUI || function(){};
+  await _loadUserSettings();
+  // FIX 4: On startup clean expired messages from all recent chats
+  setTimeout(async () => {
+    const contacts = window.state?.contacts || [];
+    const myUid = window.state?.user?.uid;
+    if(!myUid) return;
+    for(const c of contacts.slice(0,20)){
+      try{
+        const ids = [myUid, c.id].sort();
+        const path = c.isGroup ? `groups/${c.id}/messages` : `chats/room_${ids[0]}_${ids[1]}/messages`;
+        await _deleteExpiredMessages(path);
+      } catch(e){}
+    }
+  }, 3000);
+  _writeMyPresence();
   const fab = document.getElementById('fab-new-chat');
   if(fab) fab.classList.add('visible');
   const myUid = window.state?.user?.uid;
-  if(myUid) _listenForIncomingCalls(myUid);
+  if(myUid){
+    _listenForIncomingCalls(myUid);
+    _listenForFriendRequests(myUid);
+  }
 };
 
 // ── Search user by mobile & add as contact ───────────────────
@@ -2963,29 +3162,55 @@ window.addContact = async function(foundUid, foundName, mobile, av){
   if(btn){ btn.disabled=true; btn.textContent='Adding…'; }
 
   try{
+    // Check if target user has a private account
+    const theirSettings = await getDoc(doc(db,'userSettings',foundUid)).catch(()=>null);
+    const isPrivate = theirSettings?.exists() && theirSettings.data().privateAccount === true;
+
+    if(isPrivate){
+      // Send a friend request instead of adding directly
+      await setDoc(doc(db,'friendRequests',foundUid+'_'+myUid), {
+        fromUid:   myUid,
+        fromName:  window.state.user.name || 'Secret User',
+        fromMobile: window.state.user.mobile || '',
+        fromAvatar: (window.state.user.name||'?').trim().split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2),
+        toUid:     foundUid,
+        status:    'pending',
+        sentAt:    serverTimestamp()
+      });
+      // Also write a notification into their requests subcollection
+      await setDoc(doc(db,'users',foundUid,'friendRequests',myUid), {
+        fromUid:   myUid,
+        fromName:  window.state.user.name || 'Secret User',
+        fromMobile: window.state.user.mobile || '',
+        status:    'pending',
+        sentAt:    serverTimestamp()
+      });
+      showToast('🔒 ' + foundName + ' has a private account — friend request sent!');
+      closeNewChatModal();
+      if(btn){ btn.disabled=false; btn.textContent='Request Sent'; }
+      return;
+    }
+
     const contactData = {
       uid:    foundUid,
       name:   foundName,
       mobile: mobile,
       avatar: av,
-      status: 'online',
+      status: 'offline',
       last:   '',
       time:   '',
       unread: 0,
       addedAt: serverTimestamp()
     };
 
-    // Save to YOUR contacts subcollection using their UID as doc ID
     await setDoc(doc(db,'users',myUid,'contacts',foundUid), contactData);
-
-    // Update local state
     window.state.contacts.unshift({...contactData, id: foundUid});
     renderContacts(window.state.contacts);
 
     showToast(foundName + ' added to contacts.');
     closeNewChatModal();
 
-    // ── MUTUAL CONTACT: write YOU into THEIR contacts too ─────
+    // Mutual contact write
     const myData = window.state.user;
     const myAv = (myData.name||'?').trim().split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
     setDoc(doc(db,'users',foundUid,'contacts',myUid), {
@@ -2993,7 +3218,7 @@ window.addContact = async function(foundUid, foundName, mobile, av){
       name:   myData.name || 'Secret User',
       mobile: myData.mobile || '',
       avatar: myAv,
-      status: 'online',
+      status: 'offline',
       last:   '',
       time:   '',
       unread: 0,
@@ -3005,6 +3230,73 @@ window.addContact = async function(foundUid, foundName, mobile, av){
     showToast('Failed to add contact. Try again.');
     if(btn){ btn.disabled=false; btn.textContent='+ Add'; }
   }
+};
+
+// ── Friend Request Listener — notify user of incoming requests ──
+function _listenForFriendRequests(uid){
+  onSnapshot(collection(db,'users',uid,'friendRequests'), snap => {
+    snap.docChanges().forEach(change => {
+      if(change.type !== 'added') return;
+      const req = change.doc.data();
+      if(req.status !== 'pending') return;
+      _showFriendRequestToast(req, change.doc.id);
+    });
+  });
+}
+
+function _showFriendRequestToast(req, fromUid){
+  // Show a persistent banner
+  const existing = document.getElementById('friend-req-banner');
+  if(existing) existing.remove();
+  const banner = document.createElement('div');
+  banner.id = 'friend-req-banner';
+  banner.style.cssText = `position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:5000;
+    background:var(--card);border:1px solid var(--border);border-radius:16px;
+    padding:14px 16px;max-width:320px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.4);`;
+  banner.innerHTML = `
+    <div style="font-size:13px;font-weight:600;color:var(--txt);margin-bottom:8px;">
+      🔔 Friend Request from <strong>${req.fromName}</strong>
+    </div>
+    <div style="font-size:12px;color:var(--txt3);margin-bottom:12px;">${req.fromMobile||''}</div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="_acceptFriendRequest('${fromUid}','${req.fromName}','${req.fromMobile||''}','${req.fromAvatar||''}');this.closest('#friend-req-banner').remove();"
+        style="flex:1;background:var(--nexo);color:#fff;border-radius:10px;padding:8px;font-size:13px;font-weight:600;">
+        ✓ Accept
+      </button>
+      <button onclick="_declineFriendRequest('${fromUid}');this.closest('#friend-req-banner').remove();"
+        style="flex:1;background:var(--card);color:var(--txt3);border:1px solid var(--border);border-radius:10px;padding:8px;font-size:13px;">
+        ✗ Decline
+      </button>
+    </div>`;
+  document.body.appendChild(banner);
+}
+
+window._acceptFriendRequest = async function(fromUid, fromName, fromMobile, fromAv){
+  const myUid = window.state?.user?.uid;
+  if(!myUid) return;
+  // Add them to your contacts
+  await setDoc(doc(db,'users',myUid,'contacts',fromUid), {
+    uid: fromUid, name: fromName, mobile: fromMobile, avatar: fromAv,
+    status: 'offline', last: '', time: '', unread: 0, addedAt: serverTimestamp()
+  });
+  // Update request status
+  await setDoc(doc(db,'users',myUid,'friendRequests',fromUid), { status:'accepted' }, {merge:true});
+  await setDoc(doc(db,'friendRequests',fromUid+'_'+myUid), { status:'accepted' }, {merge:true});
+  // Add yourself to their contacts
+  const myData = window.state.user;
+  const myAv2 = (myData.name||'?').trim().split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  setDoc(doc(db,'users',fromUid,'contacts',myUid), {
+    uid: myUid, name: myData.name||'Secret User', mobile: myData.mobile||'',
+    avatar: myAv2, status: 'offline', last: '', time: '', unread: 0, addedAt: serverTimestamp()
+  }).catch(()=>{});
+  showToast('✓ ' + fromName + ' added to contacts!');
+};
+
+window._declineFriendRequest = async function(fromUid){
+  const myUid = window.state?.user?.uid;
+  if(!myUid) return;
+  await setDoc(doc(db,'users',myUid,'friendRequests',fromUid), { status:'declined' }, {merge:true});
+  showToast('Request declined');
 };
 
 
