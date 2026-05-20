@@ -4462,18 +4462,11 @@ if ('serviceWorker' in navigator) {
       const reg = await navigator.serviceWorker.register('/sw.js');
       console.log('[SW] Registered:', reg.scope);
 
-      // Wait until the SW is active (handles page refresh on first install)
-      const activeReg = await new Promise(resolve => {
-        if (reg.active) { resolve(reg); return; }
-        reg.addEventListener('updatefound', () => {
-          const installing = reg.installing;
-          installing.addEventListener('statechange', () => {
-            if (installing.state === 'activated') resolve(reg);
-          });
-        });
-        // Fallback: also resolve once navigator.serviceWorker.ready settles
-        navigator.serviceWorker.ready.then(resolve);
-      });
+      // navigator.serviceWorker.ready always resolves with the active registration
+      // whether the SW just installed OR was already running from a previous visit.
+      // This fixes mobile users and returning visitors where updatefound never fires.
+      const activeReg = await navigator.serviceWorker.ready;
+      console.log('[SW] Active and ready');
 
       // Now set up push notifications
       await setupPushNotifications(activeReg);
