@@ -3075,6 +3075,11 @@ window._fbSendMessage = async function(){
     const ref = await addDoc(chatColRef, msgData);
     console.log('sendMessage: Firestore write OK, docId:', ref.id);
 
+    // Push notification to recipient
+    if(!isGroup){
+      sendPushNotification(contact.id, window.state.user.name || 'Secret', text, 'message').catch(()=>{});
+    }
+
     if(!isGroup){
       // ── MUTUAL VISIBILITY for DMs ──
       const myUid  = window.state.user.uid;
@@ -3206,6 +3211,24 @@ window.bootApp = async function(){
 // ── Push / Background notification setup ─────────────────────
 async function _initPushNotifications(uid){
   try{
+    // 0. Save push subscription now — uid is guaranteed here (called after login)
+    //    On first load the SW subscribe fires before login so uid was null.
+    //    We retry here so mobile and desktop users never miss their subscription.
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(async reg => {
+        try {
+          const sub = await reg.pushManager.getSubscription();
+          if (sub) {
+            // Force-set uid into state so savePushSubscription picks it up
+            if (!window.state) window.state = {};
+            if (!window.state.user) window.state.user = {};
+            window.state.user.uid = uid;
+            await savePushSubscription(sub);
+            console.log('[Push] Subscription confirmed for uid:', uid);
+          }
+        } catch(e) { console.warn('[Push] Retry save failed:', e); }
+      });
+    }
     // 1. Ask permission (only prompts user once; subsequent calls are instant)
     if('Notification' in window && Notification.permission === 'default'){
       const perm = await Notification.requestPermission();
@@ -3724,6 +3747,9 @@ window.startCall = async function(type){
     status     : 'pending',   // ✅ using 'pending' as requested
     createdAt  : serverTimestamp()
   });
+
+  // Push notification to recipient (call)
+  sendPushNotification(contact.id, me.name || 'Secret', 'Incoming ' + (type==='video' ? 'video' : 'voice') + ' call', 'call', channelName).catch(()=>{});
 
   // Show overlay immediately for caller
   _showCallOverlay(contact.name, type, false);
@@ -4423,13 +4449,12 @@ async function setupPushNotifications(swReg) {
   }
 
   try {
-    // Check for an existing subscription — and auto-fix stale VAPID key
+    // Check for existing subscription — auto-fix if VAPID key changed
     let subscription = await swReg.pushManager.getSubscription();
 
     if (subscription) {
-      // If subscription was made with an old/different VAPID key, the server
-      // gets 403 on every push. Detect this and re-subscribe automatically.
-      // This fixes all devices (including mobile) without any manual steps.
+      // If subscription was made with old VAPID key, server gets 403 on every push.
+      // Detect mismatch and re-subscribe automatically on all devices including mobile.
       const existingKey = subscription.options?.applicationServerKey;
       const currentKey  = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
       let keyMismatch = false;
@@ -4455,7 +4480,9 @@ async function setupPushNotifications(swReg) {
       console.log('[Push] New subscription created:', subscription.endpoint);
     }
 
-    // Persist the subscription so the server can send pushes later
+    // Store subscription globally so it can be saved once uid is available after login
+    window._pendingPushSubscription = subscription;
+    // Try saving now — works if user is already logged in (e.g. page refresh)
     await savePushSubscription(subscription);
 
   } catch (err) {
