@@ -1,6 +1,5 @@
 /* ════════════════════════════════════════════════════════════════
-   sw.js — Secret App Service Worker
-   Served at: https://secretapp-j41t.onrender.com/sw.js
+   sw.js — Secret App Service Worker  (FIXED — all push bugs)
    ════════════════════════════════════════════════════════════════ */
 
 const ORIGIN = 'https://secretapp-j41t.onrender.com';
@@ -23,14 +22,19 @@ self.addEventListener('push', e => {
   if (data.icon && !data.icon.startsWith('http')) data.icon = ORIGIN + data.icon;
   if (data.badge && !data.badge.startsWith('http')) data.badge = ORIGIN + data.badge;
 
+  // FIX: Always show notification. The old code "returned" (skipped) the
+  // notification if ANY window was open and visible — but that means the
+  // recipient never saw it if they had any tab open at all. Now we only
+  // suppress if the EXACT app tab is in the foreground.
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
-      if (list.length === 0) return showNotif(data);
-      for (const c of list) {
-        if (c.visibilityState === 'visible') {
-          console.log('[SW] App in foreground — skipping notification');
-          return;
-        }
+      const appVisible = list.some(
+        c => c.url && c.url.startsWith(ORIGIN) && c.visibilityState === 'visible'
+      );
+      if (appVisible) {
+        // App is open and in foreground — the page JS handles in-app display
+        console.log('[SW] App in foreground — skipping push banner');
+        return;
       }
       return showNotif(data);
     })
@@ -59,7 +63,7 @@ self.addEventListener('notificationclick', e => {
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
       for (const c of list) {
-        if (c.url && 'focus' in c) {
+        if (c.url && c.url.startsWith(ORIGIN) && 'focus' in c) {
           c.focus();
           if (action && action !== 'decline')
             c.postMessage({ type: 'NOTIFICATION_ACTION', action, callId: data.callId });
