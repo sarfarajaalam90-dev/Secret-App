@@ -14,68 +14,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="/static/icon-192.png"/>
   <link rel="icon" type="image/png" sizes="512x512" href="/static/icon-512.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<script>
-// ── Service Worker registration (background push + cache) ────
-(function(){
-  if(!('serviceWorker' in navigator)) return;
-  // Inline Service Worker as a Blob URL so no external sw.js file is needed
-  const SW_CODE = `
-const CACHE = 'secret-v1';
-const PRECACHE = [];
-
-self.addEventListener('install', e => {
-  self.skipWaiting();
-});
-self.addEventListener('activate', e => {
-  e.waitUntil(clients.claim());
-});
-
-// ── Push notification handler ─────────────────────────────────
-self.addEventListener('push', e => {
-  let data = { title: 'Secret', body: 'New message', icon: '/static/icon-192.png', tag: 'secret-msg' };
-  try { data = Object.assign(data, e.data.json()); } catch(err) {}
-  e.waitUntil(
-    self.registration.showNotification(data.title, {
-      body   : data.body,
-      icon   : data.icon || '/static/icon-192.png',
-      badge  : '/static/icon-192.png',
-      tag    : data.tag  || 'secret-msg',
-      renotify: true,
-      data   : data
-    })
-  );
-});
-
-// ── Notification click — focus or open the app ───────────────
-self.addEventListener('notificationclick', e => {
-  e.notification.close();
-  e.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
-      for(const c of list){
-        if(c.url && 'focus' in c) return c.focus();
-      }
-      return clients.openWindow(self.location.origin);
-    })
-  );
-});
-
-// ── Background sync stub (for queued messages) ───────────────
-self.addEventListener('sync', e => {
-  if(e.tag === 'send-queued-messages'){
-    // app handles re-send on next open via Firestore offline cache
-  }
-});
-`;
-  const blob = new Blob([SW_CODE], { type: 'application/javascript' });
-  const swUrl = URL.createObjectURL(blob);
-  navigator.serviceWorker.register(swUrl, { scope: '/' })
-    .then(reg => {
-      console.log('[SW] registered, scope:', reg.scope);
-      window._swReg = reg;
-    })
-    .catch(err => console.warn('[SW] registration failed:', err));
-})();
-</script>
+<!-- SW registered via /sw.js below -->
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Sora:wght@400;600;700&display=swap" rel="stylesheet"/>
 <style>
 /* ── Reset & Tokens ─────────────────────────────────────── */
