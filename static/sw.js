@@ -1,19 +1,32 @@
 /* ════════════════════════════════════════════════════════════════
-   sw.js — Secret App Service Worker  (FULLY FIXED)
+   sw.js — Secret App Service Worker
+   KEY FIX: Server-side Firestore listener in app.py now sends
+   pushes even when BOTH users have the app fully closed.
+   This SW just needs to receive & display them reliably.
    ════════════════════════════════════════════════════════════════ */
 
 const ORIGIN = 'https://secretapp-e3jr.onrender.com';
+const SW_VERSION = 'v4'; // bump this if you change sw.js to force update
 
 self.addEventListener('install', e => {
+  console.log('[SW] Installing', SW_VERSION);
+  // Skip waiting immediately so the new SW takes over without needing a refresh
   self.skipWaiting();
 });
 
 self.addEventListener('activate', e => {
+  console.log('[SW] Activating', SW_VERSION);
+  // Take control of all open pages immediately
   e.waitUntil(clients.claim());
 });
 
+// ── Push event — ALWAYS show notification ────────────────────────
+// This fires when the server sends a push via web-push protocol.
+// It works even when the app is fully closed (no browser tab open).
 self.addEventListener('push', e => {
-  // Parse payload — always have safe defaults
+  console.log('[SW] Push received');
+
+  // Safe defaults
   let data = {
     title : 'Secret',
     body  : 'New message',
@@ -25,43 +38,41 @@ self.addEventListener('push', e => {
   };
 
   if (e.data) {
-    try { Object.assign(data, e.data.json()); } catch (_) {}
+    try {
+      Object.assign(data, e.data.json());
+    } catch (_) {
+      // If JSON parse fails, try text
+      data.body = e.data.text() || data.body;
+    }
   }
 
-  // Ensure absolute URLs for icon/badge
-  if (data.icon && !data.icon.startsWith('http'))  data.icon  = ORIGIN + data.icon;
+  // Make sure icon/badge are absolute URLs
+  if (data.icon  && !data.icon.startsWith('http'))  data.icon  = ORIGIN + data.icon;
   if (data.badge && !data.badge.startsWith('http')) data.badge = ORIGIN + data.badge;
 
-  // ── CRITICAL FIX ──────────────────────────────────────────────
-  // ALWAYS show the notification from the SW.
-  // Do NOT check clients.matchAll() here — when the app is fully
-  // closed there are zero clients and the check is pointless.
-  // When the app IS open/visible, the page JS will already be
-  // showing in-app UI. The OS will suppress duplicate notifications
-  // automatically via the 'tag' field (same tag = replace, not add).
-  // Removing the clients check fixes 100% of "closed app = no notif" bugs.
-  // ──────────────────────────────────────────────────────────────
-  e.waitUntil(showNotif(data));
+  // IMPORTANT: Always call e.waitUntil with the showNotification promise.
+  // Without this, the browser may kill the SW before the notification shows.
+  e.waitUntil(
+    self.registration.showNotification(data.title, {
+      body              : data.body,
+      icon              : data.icon,
+      badge             : data.badge,
+      tag               : data.tag || 'secret-msg',
+      renotify          : true,          // always alert even if same tag
+      requireInteraction: data.type === 'call',  // call notifs stay until dismissed
+      vibrate           : data.type === 'call'
+                            ? [300, 100, 300, 100, 300]
+                            : [200, 100, 200],
+      data              : data,          // attach payload so notificationclick can read it
+      actions           : data.type === 'call'
+        ? [{ action: 'answer',  title: '✅ Answer'  },
+           { action: 'decline', title: '❌ Decline' }]
+        : [{ action: 'open',    title: '💬 Open'    }]
+    })
+  );
 });
 
-function showNotif(data) {
-  const options = {
-    body              : data.body,
-    icon              : data.icon,
-    badge             : data.badge,
-    tag               : data.tag || 'secret-msg',
-    renotify          : true,
-    requireInteraction: data.type === 'call',
-    vibrate           : data.type === 'call' ? [300,100,300,100,300] : [200,100,200],
-    data              : data,
-    actions           : data.type === 'call'
-      ? [{ action: 'answer',  title: '✅ Answer'  },
-         { action: 'decline', title: '❌ Decline' }]
-      : [{ action: 'open',    title: '💬 Open'    }]
-  };
-  return self.registration.showNotification(data.title, options);
-}
-
+// ── Notification click ───────────────────────────────────────────
 self.addEventListener('notificationclick', e => {
   e.notification.close();
   const action = e.action;
@@ -69,7 +80,7 @@ self.addEventListener('notificationclick', e => {
 
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
-      // Try to focus existing app window first
+      // Try to focus an already-open app window
       for (const c of list) {
         if (c.url && c.url.startsWith(ORIGIN) && 'focus' in c) {
           c.focus();
@@ -83,7 +94,7 @@ self.addEventListener('notificationclick', e => {
           return;
         }
       }
-      // No window open — open a new one (unless user declined a call)
+      // No window open — open the app (unless user declined a call)
       if (action !== 'decline') {
         return clients.openWindow(ORIGIN);
       }
@@ -91,7 +102,7 @@ self.addEventListener('notificationclick', e => {
   );
 });
 
-// Keep SW alive for background sync (future use)
+// ── Background sync (reserved for future offline queue) ─────────
 self.addEventListener('sync', e => {
   if (e.tag === 'send-queued-messages') { /* reserved */ }
 });
