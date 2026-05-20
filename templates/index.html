@@ -4351,22 +4351,33 @@ async function savePushSubscription(subscription) {
   try {
     const uid = window.state?.user?.uid;
     if (!uid) {
-      // uid not available yet — store and retry once user logs in
       console.warn('[Push] No uid yet — will retry after login.');
       window._pendingPushSubscription = subscription;
       return;
     }
-    const res = await fetch('/api/push/subscribe', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uid, subscription: subscription.toJSON() })
-    });
-    if (res.ok) {
-      console.log('[Push] Subscription saved for uid:', uid);
-      window._pendingPushSubscription = null; // clear pending
-    } else {
-      console.warn('[Push] Server rejected subscription:', res.status);
+    const subJson = subscription.toJSON();
+
+    // ── STEP 1: Save to Firestore (permanent — survives Render restarts) ──
+    try {
+      await setDoc(doc(db, 'pushSubscriptions', uid), {
+        subscription: subJson,
+        updatedAt: serverTimestamp()
+      });
+      console.log('[Push] Subscription saved to Firestore for uid:', uid);
+    } catch (fsErr) {
+      console.warn('[Push] Firestore save failed:', fsErr);
     }
+
+    // ── STEP 2: Also POST to Flask so current server instance has it cached ──
+    try {
+      await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid, subscription: subJson })
+      });
+    } catch (_) {}
+
+    window._pendingPushSubscription = null;
   } catch (err) {
     console.warn('[Push] Could not save subscription:', err);
   }
