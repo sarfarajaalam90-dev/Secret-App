@@ -14,7 +14,68 @@
   <link rel="icon" type="image/png" sizes="192x192" href="/static/icon-192.png"/>
   <link rel="icon" type="image/png" sizes="512x512" href="/static/icon-512.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<!-- Service Worker is registered in the push setup script below (uses /sw.js) -->
+<script>
+// ── Service Worker registration (background push + cache) ────
+(function(){
+  if(!('serviceWorker' in navigator)) return;
+  // Inline Service Worker as a Blob URL so no external sw.js file is needed
+  const SW_CODE = `
+const CACHE = 'secret-v1';
+const PRECACHE = [];
+
+self.addEventListener('install', e => {
+  self.skipWaiting();
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(clients.claim());
+});
+
+// ── Push notification handler ─────────────────────────────────
+self.addEventListener('push', e => {
+  let data = { title: 'Secret', body: 'New message', icon: '/static/icon-192.png', tag: 'secret-msg' };
+  try { data = Object.assign(data, e.data.json()); } catch(err) {}
+  e.waitUntil(
+    self.registration.showNotification(data.title, {
+      body   : data.body,
+      icon   : data.icon || '/static/icon-192.png',
+      badge  : '/static/icon-192.png',
+      tag    : data.tag  || 'secret-msg',
+      renotify: true,
+      data   : data
+    })
+  );
+});
+
+// ── Notification click — focus or open the app ───────────────
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      for(const c of list){
+        if(c.url && 'focus' in c) return c.focus();
+      }
+      return clients.openWindow(self.location.origin);
+    })
+  );
+});
+
+// ── Background sync stub (for queued messages) ───────────────
+self.addEventListener('sync', e => {
+  if(e.tag === 'send-queued-messages'){
+    // app handles re-send on next open via Firestore offline cache
+  }
+});
+`;
+  const blob = new Blob([SW_CODE], { type: 'application/javascript' });
+  const swUrl = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swUrl, { scope: '/' })
+    .then(reg => {
+      console.log('[SW] registered, scope:', reg.scope);
+      window._swReg = reg;
+    })
+    .catch(err => console.warn('[SW] registration failed:', err));
+})();
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Sora:wght@400;600;700&display=swap" rel="stylesheet"/>
 <style>
 /* ── Reset & Tokens ─────────────────────────────────────── */
@@ -4295,7 +4356,7 @@ document.addEventListener('visibilitychange', () => {
    ═══════════════════════════════════════════════════════════════ */
 
 // ── VAPID public key (from your push server) ──────────────────
-const VAPID_PUBLIC_KEY = 'BJa536ZN39g2MQWdk4hdVhcrnEL32VgcUw6ILEot6OLt41W04ZevQt5AdVH7UOfM6UKPPjWBzzyuVEZP8pEAHyU';
+const VAPID_PUBLIC_KEY = 'BIayh8Hp_-6TosLl50O5xGmK1F7mP6RAmdul3m22nEwCWd3tL5Rm1BRWp_Oq-fzafRIvo2gr-lFokY2TFuQjWlw';
 
 /** Convert a base64url VAPID key to a Uint8Array for the browser API */
 function urlBase64ToUint8Array(base64String) {
@@ -4305,27 +4366,44 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
 }
 
-/** Store the push subscription endpoint on your backend / Firestore */
+/** Store the push subscription endpoint on your backend */
 async function savePushSubscription(subscription) {
   try {
-    // If you use Firestore, replace the fetch() below with a setDoc() call:
-    //
-    //   const uid = window.state?.user?.uid;
-    //   if (!uid) return;
-    //   await setDoc(doc(db, 'pushSubscriptions', uid), {
-    //     subscription: subscription.toJSON(),
-    //     updatedAt: serverTimestamp()
-    //   });
-    //
-    // For a REST back-end:
+    const uid = window.state?.user?.uid;
+    if (!uid) { console.warn('[Push] No uid yet — subscription not saved.'); return; }
     await fetch('/api/push/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(subscription)
+      body: JSON.stringify({ uid, subscription: subscription.toJSON() })
     });
-    console.log('[Push] Subscription saved to server.');
+    console.log('[Push] Subscription saved for uid:', uid);
   } catch (err) {
     console.warn('[Push] Could not save subscription:', err);
+  }
+}
+
+/**
+ * Call this from your message-send and call-start logic to push a
+ * notification to the recipient.
+ *
+ * @param {string} recipientUid  - Firebase uid of the person to notify
+ * @param {string} title         - Notification title (e.g. sender's name)
+ * @param {string} body          - Notification body text
+ * @param {'message'|'call'} type
+ * @param {string} [callId]      - Only needed for call notifications
+ */
+async function sendPushNotification(recipientUid, title, body, type = 'message', callId = '') {
+  try {
+    const res = await fetch('/api/push/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ recipientUid, title, body, type, callId })
+    });
+    const json = await res.json();
+    if (!json.ok) console.warn('[Push] Send failed:', json.error);
+    else console.log('[Push] Notification sent to:', recipientUid);
+  } catch (err) {
+    console.warn('[Push] sendPushNotification error:', err);
   }
 }
 
@@ -4395,11 +4473,18 @@ if ('serviceWorker' in navigator) {
       const reg = await navigator.serviceWorker.register('/sw.js');
       console.log('[SW] Registered:', reg.scope);
 
-      // Wait until the SW is active — covers first install, update, AND already-active cases.
-      // navigator.serviceWorker.ready is the correct API: it resolves with the active
-      // registration regardless of whether install just happened or happened previously.
-      const activeReg = await navigator.serviceWorker.ready;
-      console.log('[SW] Active and ready:', activeReg.scope);
+      // Wait until the SW is active (handles page refresh on first install)
+      const activeReg = await new Promise(resolve => {
+        if (reg.active) { resolve(reg); return; }
+        reg.addEventListener('updatefound', () => {
+          const installing = reg.installing;
+          installing.addEventListener('statechange', () => {
+            if (installing.state === 'activated') resolve(reg);
+          });
+        });
+        // Fallback: also resolve once navigator.serviceWorker.ready settles
+        navigator.serviceWorker.ready.then(resolve);
+      });
 
       // Now set up push notifications
       await setupPushNotifications(activeReg);
