@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from datetime import datetime
 from pywebpush import webpush, WebPushException
+from flask_cors import CORS
 import os, json
 
 # ── Firebase Admin ────────────────────────────────────────────────────────────
@@ -33,6 +34,7 @@ _init_firebase()
 
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.secret_key = os.environ.get("SECRET_KEY", os.urandom(24))
+CORS(app, origins=["https://nexo-app-b9ec4.web.app", "https://nexo-app-b9ec4.firebaseapp.com"])
 
 # ── VAPID config ──────────────────────────────────────────────────────────────
 #
